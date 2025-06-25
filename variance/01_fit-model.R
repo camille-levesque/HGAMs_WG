@@ -32,8 +32,6 @@ d_crop = dplyr::filter(d_crop, valid_name %in% ex)
 d_crop = dplyr::filter(d_crop, valid_name != "Vireo olivaceus")
 saveRDS(d_crop, "variance/example_species_df.rds")
 
-# ggplot(data = filter(data_train, series != "Vireo olivaceus")) +
-#   geom_smooth(aes(x = time, y = y, col = series))
 
 ## data exploration ------------------------------------------------------------
 
@@ -62,20 +60,12 @@ ggsave("variance/figures/linear_slopes.png")
 gamls = lapply(dls, function(x){gam(ABUNDANCE ~ s(YEAR, k = 4), data = x)})
 lapply(gamls, plot)
 
-
-
 ## build an mvgam model for all species together ------------------------------
-
 
 # prepare the data ----
 
-temp = d_crop |> group_by(valid_name) |>
-  mutate("scaled_abundance" = scale(ABUNDANCE)) |> 
-  ungroup() |>
-  select(-c(LATITUDE, LONGITUDE))
-
 # format into long
-dat = temp |>
+dat = d_crop |>
   select(valid_name, ABUNDANCE, YEAR) |>
   rename("time" = "YEAR",
          "series" = "valid_name",
@@ -86,8 +76,14 @@ dat$series <- as.factor(dat$series)
 dat$time <- as.integer(dat$time)-min(dat$time)
 
 
-data_train = dat[which(temp$YEAR <= 1999),]
-data_test = dat[which(temp$YEAR > 2000),]
+data_train = dat[which(d_crop$YEAR <= 1999),]
+data_test = dat[which(d_crop$YEAR > 2000),]
+
+ggplot(data = data_train) +
+  geom_smooth(aes(x = time, y = y, 
+                  col = series, fill = series),
+              alpha = .1)
+ggsave("variance/figures/individual_gams.png")
 
 npops = length(unique(dat$series))
 
@@ -135,11 +131,12 @@ knots = 4
 # check number of knots ----
 knots = 4
 
-kcheck_gam = mgcv::gam(y ~ s(time, bs = "tp", k = 6) + 
+hgam = mgcv::gam(y ~ s(time, bs = "tp", k = 6) + 
                          s(series, bs = 're', k = npops), 
                        family = "poisson",
                        data = data_train)
-mgcv::gam.check(kcheck_gam)
+mgcv::gam.check(hgam)
+plot(hgam)
 
 # train the model on data ----
 m1 <- mvgam(data = data_train,
