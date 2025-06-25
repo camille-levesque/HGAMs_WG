@@ -9,28 +9,14 @@ library(tidybayes)       # Tidy manipulation / plots of posterior draws
 library(tidyverse)
 
 
-## devtools: you need to install the package via the GitHub repository
-
-##install.packages("bbsBayes2", repos = c(bbsbayes = "https://bbsbayes.r-universe.dev",
-##                                        CRAN = getOption("repos")))
-library(bbsBayes2) # v1.1.2.1
-library(cmdstanr) # v0.7.1
-
-cmdstanr::install_cmdstan()
-
-cmdstanr::check_cmdstan_toolchain(fix = TRUE)
-
-fetch_bbs_data()
-
-
-
 
 # load data
+data <- read.csv("data/clean/data_195.csv")
+    # Data was already cleaned by Katherine Hebert : data cleaning script in the data_cleaning folder
+    # We import it from the "clean" folder (data/clean)
 
 # adjust data
 
   # changer type colonne (as.factor, etc.)
   # formatter
   # creer nouvelles colonnes, etc.
-
-#vignettes/articles/bbsBayes2.Rmd
