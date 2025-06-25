@@ -40,5 +40,24 @@ axis(3, at = seq(0,1, len = NCOL(d)),
      labels = colnames(d))
   # No NAs
 
+# Plot all of the time series together
+plot_mvgam_series(data = d_crop, y = "rel_abun", series = "all")
+
+# Plot some more in-depth features for individual series
+plot_mvgam_series(data = d_crop, y = "rel_abun", series = 1)
+plot_mvgam_series(data = d_crop, y = "rel_abun", series = 2)
+plot_mvgam_series(data = d_crop, y = "rel_abun", series = 3)
+plot_mvgam_series(data = d_crop, y = "rel_abun", series = 4)
+
+
+
+
+
+
+
+
+
+
+
 
 
