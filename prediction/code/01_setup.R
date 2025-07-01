@@ -8,22 +8,6 @@ library(marginaleffects) # Compute interpretable model predictions
 library(tidyverse)
 library(mgcv)
 
-
-## devtools: you need to install the package via the GitHub repository
-
-## install.packages("bbsBayes2", repos = c(bbsbayes = "https://bbsbayes.r-universe.dev",
-##                                         CRAN = getOption("repos")))
-library(bbsBayes2) # v1.1.2.1
-library(cmdstanr) # v0.7.1
-
-cmdstanr::install_cmdstan()
-
-cmdstanr::check_cmdstan_toolchain(fix = TRUE)
-
-fetch_bbs_data()
-
-
-
 # load data
 
 ## clean data
@@ -39,32 +23,33 @@ d_crop <- readRDS("variance/example_species_df.rds")
     # Data regrouped by species per year (for one localization 44.55;-74.4833)
 
 # Rename columns and adjust abundance 
-d_crop <- d_crop %>%
+dat <- d_crop %>%
   rename(
-    abun = ABUNDANCE,
+    y = ABUNDANCE,
     series = valid_name, # for the mvgam requirement
     lat = LATITUDE,
     long = LONGITUDE,
     time = YEAR # for the mvgam requirement
     ) 
 
-d_crop <- d_crop %>%
+dat <- dat %>%
   group_by(time) %>%
-  mutate(total_abun = sum(abun)) %>%
-  mutate(rel_abun = abun/total_abun) %>%
+  mutate(total_abun = sum(y)) %>%
+  mutate(rel_abun = y/total_abun) %>%
   select(-total_abun)
 
-# Conditions
+# mvgam format requirements
 
 ## Adjust columns for mvgam requirements
-d_crop %>%
-  dplyr::mutate(series = as.factor(series)) -> d_crop
-dplyr::glimpse(d_crop) # we now only have integers, factors or numeric columns
-levels(d_crop$series) # 28 species
+dat$y = as.vector(dat$y)
+dat <- filter(dat, series != "Vireo olivaceus")
+dat$series <- as.factor(dat$series)
+dat$time <- as.integer(dat$time)-min(dat$time)
 
-## Verify if there is 0 or 1 values for the relative abundance 
-min(d_crop$rel_abun)
-max(d_crop$rel_abun)
+# subsetting the data in training and testing folds
+data_train = dat[which(d_crop$YEAR <= 1999),]
+data_test = dat[which(d_crop$YEAR > 2000),]
+
 
 
 
