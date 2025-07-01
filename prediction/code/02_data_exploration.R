@@ -1,5 +1,5 @@
 # Load previous scripts ---------------------------------------------------
-source("code/01_setup.R") # Source previous script, where we import & format data and load libraries
+source("prediction/code/01_setup.R") # Source previous script, where we import & format data and load libraries
 # Data exploration --------------------------------------------------------
 
 ##########################################
