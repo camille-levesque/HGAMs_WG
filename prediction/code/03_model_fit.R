@@ -47,8 +47,107 @@ mod <- mvgam(rel_abun ~
 #   invalid 'y' type in 'x && y'
 # SOLUTION SHOULD BE TO UPDATE CMDSTANR
 
+# # we recommend running this in a fresh R session or restarting your current session
+# install.packages("cmdstanr", repos = c('https://stan-dev.r-universe.dev', getOption("repos")))
+
+# After updating cmdstanR, Rtools was  an issue, fixed by downloading RTools 4.4
+
+# The model now runs in 153.548
+
+# Warning message:
+#   Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#bulk-ess 
+
+# mathematical description of the model:
+# The model can be described mathematically as follows: ------ TO BE ADJUSTED
+
+#                   for s in 1:N_species ...
+#                  for t in 1:N_timepoints...
+
+#                   ## Observation model ##
+#  Relative abundance[s, t] ~ Beta(μ[s, t], φ[s])
+
+#                   ## Linear predictor ##
+#            logit(μ[s, t]) = α[s] + f(mintemp)_shared[t] + 
+#                             f(mintemp)_species[s, t]
+#                         f = sum(β_smooth * b) 
+
+#                      ## Priors ##
+#                         α ~ Normal(μ_population, σ_population)
+#              μ_population ~ Normal(0, 1)
+#              σ_population ~ Student-t(3, 0, 2.5)[0, ]
+#                  β_smooth ~ MVNormal(0, (Ω ∗ λ)^−1)
+#                         λ ~ Normal(5, 30)[0, ]
+#                         φ ~ Gamma(0.01, 0.01)
+
+# where:  ------------------------------------- TO BE ADJUSTED
+# f are the penalized smooth functions
+# b are thin plate spline basis functions
+# Ω are a set of prior precision matrices for the smooths
+# λ are the smoothing penalties that prevent overfitting; note that
+#   Normal(5, 30)[0, ] indicates a half-normal prior distribution
+# φ are species-level precision parameters
+
+# If you would like to see the underlying Stan code, which is fully
+# transparent in its use of prior distributions, use the code()
+# function:
+code(mod)
+
+# Inspect the model summary
+summary(mod)
+
+how_to_cite(mod)
+
+# Sampling diagnostics (see ?mcmc_plot.mvgam for details on the types
+# of {bayesplot} plots that can be used with {mvgam})
+mcmc_plot(mod, type = 'rhat_hist')
+mcmc_plot(mod, type = 'trace')
+
+# Pairs plots are also useful for diagnosing non-identifiabilities in
+# Bayesian models. See ?bayesplot::mcmc_pairs for details. Here a pairs plot
+# of the random effect mean and SD parameters shows no worrisome 'funnel' 
+# behaviour that can plague hierarchical models:
+pairs(mod, variable = c('mean(series)', 'sd(series)'))
+
+# # Plot the hierarchical smooth components with the S3 'plot' function
+# # (see ?plot.mvgam for more details)
+# plot(mod, type = 'smooths') # No terms to plot-nothing for plot.mvgam() to do
+
+
+# Plot the hierarchical intercepts
+plot(mod, type = 're')
+
+# More informative plots can be made using plot_predictions() from
+# the {marginaleffects} universe to visualise conditional effects 
+# on the outcome scale. See ?marginaleffects::plot_predictions 
+# for details, or visit: https://marginaleffects.com/
+plot_predictions(mod, 
+                 condition = c('time', 'rel_abun', 'series'),
+                 points = 0.5,
+                 rug = TRUE) +
+  theme(legend.position = 'none') +
+  labs(y = 'Relative abundance', x = 'Time')
 
 
 
 
-# mathematical description of the model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
