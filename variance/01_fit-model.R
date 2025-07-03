@@ -59,6 +59,14 @@ ggsave("variance/figures/linear_slopes.png")
 # check for basic population trends
 gamls = lapply(dls, function(x){gam(ABUNDANCE ~ s(YEAR, k = 4), data = x)})
 lapply(gamls, plot)
+for(i in 1:length(gamls)){
+  plot(gamls[[i]], main = dls[[i]]$valid_name[1])
+}
+
+# species to keep:
+ex = ex[c(1,4,12,13,16,18,21,23,26,28)]
+d_crop = dplyr::filter(d_crop, valid_name %in% ex)
+saveRDS(d_crop, "variance/example_species_df.rds")
 
 ## build an mvgam model for all species together ------------------------------
 
@@ -85,7 +93,7 @@ ggplot(data = data_train) +
               alpha = .1)
 ggsave("variance/figures/individual_gams.png")
 
-npops = length(unique(dat$series))
+npops = length(unique(data_train$series))
 
 # prepare the priors ----
 knots = 4
@@ -131,7 +139,7 @@ knots = 4
 # check number of knots ----
 knots = 4
 
-hgam = mgcv::gam(y ~ s(time, bs = "tp", k = 6) + 
+hgam = mgcv::gam(y ~ s(time, bs = "tp", k = 5) + 
                          s(series, bs = 're', k = npops), 
                        family = "poisson",
                        data = data_train)
@@ -140,21 +148,27 @@ plot(hgam)
 
 # train the model on data ----
 m1 <- mvgam(data = data_train,
-              formula =  y ~ s(time, bs = "tp", k = 6) + 
+              formula =  y ~ s(time, bs = "tp", k = 5) + 
                 s(series, bs = "re"),
-              use_lv = TRUE,
+              use_lv = FALSE,
               family = "poisson",
-              trend_model = 'AR1',
+              trend_model = 'GP',
               use_stan = TRUE,
               chains = 2, 
-              burnin = 500,
-              samples = 2000
+              burnin = 5000,
+              samples = 10000
 )
 saveRDS(m1, paste0("variance/outputs/mvgam_variance.rds")) 
-# model didn't converge very well
 
 plot(m1)
 
+png(height=500, width=800, file="variance/figures/global_smooth.png", type = "cairo")
+mvgam::plot_mvgam_smooth(m1)
+dev.off()
+
+png(height=500, width=800, file="variance/figures/species_effect.png", type = "cairo")
+mvgam::plot_mvgam_randomeffects(m1)
+dev.off()
 
 # species associations ----
 
