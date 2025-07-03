@@ -134,20 +134,21 @@ plot(mod, type = 're')
 #   theme(legend.position = 'none') +
 #   labs(y = 'Abundance', x = 'Time')
 
-# now we are actually predicting but we don't have the points for the true values yet (still a first win!)
+# A first plot to show our training data and the trends for predicted data of the model (with true values in black)
 plot_predictions(mod, 
                  newdata = data_test,
-                 by = c('time', 'series', 'series'),
-                 points = 0.5) +
+                 by = c('time', 'series', 'series'), # by is for predictive trends (marginal conditions)
+                 points = 0.5) + # transparency
   geom_vline(xintercept = max(data_train$time),
-             linetype = 'dashed')+
-  geom_point(data=data_test, aes(x=time, y=y), alpha=.5)+
+             linetype = 'dashed')+ # adding a line to emphasize the switch from training to testing
+  geom_point(data=data_test, aes(x=time, y=y), alpha=.5)+ # adding the true values for predicted data
   theme(legend.position = 'none') +
   labs(y = 'Abundance', x = 'Time')
 
+# A second plot where we see the trend of the training data but only the true points for the predicted ones (so not as interesting)
   plot_predictions(mod, 
                    newdata = data_test,
-                   condition = c('time', 'series', 'series'),
+                   condition = c('time', 'series', 'series'), # conditional predictions which truly means what the trend on training data
                    points = 0.5) +
   geom_vline(xintercept = max(data_train$time),
              linetype = 'dashed')+
@@ -155,13 +156,13 @@ plot_predictions(mod,
   theme(legend.position = 'none') +
   labs(y = 'Abundance', x = 'Time')
 
-# Playing around to get what I want
+# I'd like to get both the trend fitted for the training data and the predictions (might be overkill though)
   # start by fixing the y limits for the two graphs so that we can pretend that it's one graph
   max_temp <- plyr::round_any(max(plot_predictions(mod, 
                                                    newdata = data_test,
                                                    by = c('time', 'series'),
                                                    draw = FALSE)$conf.high), f=ceiling, accuracy=10)
-  
+  # matching two graphs into being 'one' but really it's two
   plot_predictions(mod, 
                    by = c('time', 'series'),
                    points = 0.5) +
@@ -177,7 +178,7 @@ plot_predictions(mod,
     ylim(c(0,max_temp)) +
     labs(y = '', x = 'Time')
   # problem that we're loosing the facet
-  # too many species to see everything at once with a facet added
+  # too many species to see everything at once with a facet added but could be an option if 2-3 species
   plot_predictions(mod, 
                    by = c('time', 'series'),
                    points = 0.5) +
