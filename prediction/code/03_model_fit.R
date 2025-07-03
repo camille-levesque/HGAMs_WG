@@ -141,6 +141,7 @@ plot_predictions(mod,
                  points = 0.5) +
   geom_vline(xintercept = max(data_train$time),
              linetype = 'dashed')+
+  geom_point(data=data_test, aes(x=time, y=y), alpha=.5)+
     theme(legend.position = 'none') +
     labs(y = 'Abundance', x = 'Time')
 
