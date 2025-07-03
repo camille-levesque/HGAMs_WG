@@ -3,6 +3,8 @@ source("prediction/code/01_setup.R") # Import & format data and load libraries
 source("prediction/code/02_data_exploration.R") # Data exploration
 # Model fitting  --------------------------------------------------------
 
+set.seed(2505)
+
 # First import of Nicholas' code (starting line 200) to adjust it - we will filter what is relevant later 
 
 # We only want to predict relative abundance of species through time.
@@ -12,19 +14,13 @@ source("prediction/code/02_data_exploration.R") # Data exploration
 # (see ?mgcv::s, ?mgcv::te, ?brms::gp and ?mvgam::dynamic for 
 # more information on the kinds of terms supported in {mvgam}
 # formulae). This model takes ~ XXXXXX seconds to fit, after compilation
-mod <- mvgam(rel_abun ~ 
+mod <- mvgam(y ~ s(time, bs = "tp", k = 6) + 
                
                # Hierarchical intercepts capture variation in average
                # relative abundances
                s(series, bs = 're'),
+             # use_lv = TRUE,
                
-               # A shared smooth of minimum temperature         # NO NEED FOR US
-               ## s(mintemp, k = 8) +                            
-               
-               # Deviation smooths of minimum temperature,      # NO NEED FOR US
-               # allowing each species' response to mintemp to vary
-               # from the shared smooth
-               ## s(mintemp, series, bs = 'sz', k = 8) - 1,        
              
              # Condition on the training data
              data = data_train,
@@ -33,44 +29,24 @@ mod <- mvgam(rel_abun ~
              newdata = data_test,
              
              # Beta observations with independent precisions
-             family = betar(),
+             family = poisson(),
+             trend_model = ZMVN(), # might need to change to RW or ZMVN
              
+             use_stan = TRUE,
+             chains = 2, 
+             burnin = 500,
+             samples = 2000,
+             # run_model = FALSE, # because we only want to inspect the priors
+             # prior_simulation = TRUE,
              # cmdstanr is highly recommended over rstan as 
              # it is much more up-to-date with the latest 
              # features in the Stan universe
              backend = 'cmdstanr')
 
-# Warning messages:
-#   1: There were 4 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
-# https://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded 
-# 2: Examine the pairs() plot to diagnose sampling problems
-# 
-# 3: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
-# Running the chains for more iterations may help. See
-# https://mc-stan.org/misc/warnings.html#bulk-ess 
-# 4: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
-# Running the chains for more iterations may help. See
-# https://mc-stan.org/misc/warnings.html#tail-ess 
-
+# not working?
 mod$save_object("mod.rds")
 
 
-# Chains finished between 67.2 and 77.9 seconds
-# ERROR CODE
-# Error in !is.null(csv_contents$metadata$save_warmup) && csv_contents$metadata$save_warmup : 
-#   invalid 'y' type in 'x && y'
-# SOLUTION SHOULD BE TO UPDATE CMDSTANR
-
-# # we recommend running this in a fresh R session or restarting your current session
-# install.packages("cmdstanr", repos = c('https://stan-dev.r-universe.dev', getOption("repos")))
-
-# After updating cmdstanR, Rtools was  an issue, fixed by downloading RTools 4.4
-
-# The model now runs in 153.548
-
-# Warning message:
-#   Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
-# Running the chains for more iterations may help. See
 # https://mc-stan.org/misc/warnings.html#bulk-ess 
 
 # mathematical description of the model:
@@ -102,6 +78,7 @@ mod$save_object("mod.rds")
 # λ are the smoothing penalties that prevent overfitting; note that
 #   Normal(5, 30)[0, ] indicates a half-normal prior distribution
 # φ are species-level precision parameters
+
 
 # If you would like to see the underlying Stan code, which is fully
 # transparent in its use of prior distributions, use the code()
@@ -137,13 +114,18 @@ plot(mod, type = 're')
 # on the outcome scale. See ?marginaleffects::plot_predictions 
 # for details, or visit: https://marginaleffects.com/
 plot_predictions(mod, 
-                 condition = c('time', 'rel_abun', 'series'),
+                 condition = c('time', 'series', 'series'),
+                 type = "link",
+                 newdata = data_test,
                  points = 0.5,
                  rug = TRUE) +
   theme(legend.position = 'none') +
-  labs(y = 'Relative abundance', x = 'Time')
+  labs(y = 'Abundance', x = 'Time')
 
-
+for (i in 1:length(unique(data_test$series))) {
+  plot(mod, type ="forecast", series =i)
+  
+}
 
 
 
