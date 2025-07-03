@@ -40,6 +40,20 @@ mod <- mvgam(rel_abun ~
              # features in the Stan universe
              backend = 'cmdstanr')
 
+# Warning messages:
+#   1: There were 4 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
+# https://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded 
+# 2: Examine the pairs() plot to diagnose sampling problems
+# 
+# 3: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#bulk-ess 
+# 4: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+# Running the chains for more iterations may help. See
+# https://mc-stan.org/misc/warnings.html#tail-ess 
+
+mod$save_object("mod.rds")
+
 
 # Chains finished between 67.2 and 77.9 seconds
 # ERROR CODE
@@ -68,7 +82,7 @@ mod <- mvgam(rel_abun ~
 #                   ## Observation model ##
 #  Relative abundance[s, t] ~ Beta(μ[s, t], φ[s])
 
-#                   ## Linear predictor ##
+#                   ## Linear predictor ##           ------ WE TAKE OUT ? (OU JUSTE PARTIE AVEC MINTEMP)
 #            logit(μ[s, t]) = α[s] + f(mintemp)_shared[t] + 
 #                             f(mintemp)_species[s, t]
 #                         f = sum(β_smooth * b) 
@@ -76,7 +90,7 @@ mod <- mvgam(rel_abun ~
 #                      ## Priors ##
 #                         α ~ Normal(μ_population, σ_population)
 #              μ_population ~ Normal(0, 1)
-#              σ_population ~ Student-t(3, 0, 2.5)[0, ]
+#              σ_population ~ Student-t(3, 0, 2.5)[0, ] ------ TO BE ADJUSTED?
 #                  β_smooth ~ MVNormal(0, (Ω ∗ λ)^−1)
 #                         λ ~ Normal(5, 30)[0, ]
 #                         φ ~ Gamma(0.01, 0.01)
@@ -97,7 +111,7 @@ code(mod)
 # Inspect the model summary
 summary(mod)
 
-how_to_cite(mod)
+## how_to_cite(mod)
 
 # Sampling diagnostics (see ?mcmc_plot.mvgam for details on the types
 # of {bayesplot} plots that can be used with {mvgam})
