@@ -142,24 +142,58 @@ plot_predictions(mod,
   geom_vline(xintercept = max(data_train$time),
              linetype = 'dashed')+
   geom_point(data=data_test, aes(x=time, y=y), alpha=.5)+
-    theme(legend.position = 'none') +
-    labs(y = 'Abundance', x = 'Time')
+  theme(legend.position = 'none') +
+  labs(y = 'Abundance', x = 'Time')
 
+  plot_predictions(mod, 
+                   newdata = data_test,
+                   condition = c('time', 'series', 'series'),
+                   points = 0.5) +
+  geom_vline(xintercept = max(data_train$time),
+             linetype = 'dashed')+
+  geom_point(data=data_test, aes(x=time, y=y), alpha=.5)+
+  theme(legend.position = 'none') +
+  labs(y = 'Abundance', x = 'Time')
 
-for (i in 1:length(unique(data_test$series))) {
-  plot(mod, type ="forecast", series =i)
+# Playing around to get what I want
+  # start by fixing the y limits for the two graphs so that we can pretend that it's one graph
+  max_temp <- plyr::round_any(max(plot_predictions(mod, 
+                                                   newdata = data_test,
+                                                   by = c('time', 'series'),
+                                                   draw = FALSE)$conf.high), f=ceiling, accuracy=10)
   
-}
-
-
-
-
-
-
-
-
-
-
+  plot_predictions(mod, 
+                   by = c('time', 'series'),
+                   points = 0.5) +
+    theme(legend.position = 'none') +
+    labs(y = 'Abundance', x = 'Time') + 
+    ylim(c(0,max_temp)) +
+    plot_predictions(mod, 
+                     newdata = data_test,
+                     by = c('time', 'series'),
+                     draw = TRUE)+
+    theme(legend.position = 'none') +
+    geom_point(data=data_test, aes(x=time, y=y, color=series), alpha=.5) +
+    ylim(c(0,max_temp)) +
+    labs(y = '', x = 'Time')
+  # problem that we're loosing the facet
+  # too many species to see everything at once with a facet added
+  plot_predictions(mod, 
+                   by = c('time', 'series'),
+                   points = 0.5) +
+    theme(legend.position = 'none') +
+    labs(y = 'Abundance', x = 'Time') + 
+    facet_grid(series~.) +
+    # ylim(c(0,max_temp)) +
+    plot_predictions(mod, 
+                     newdata = data_test,
+                     by = c('time', 'series'),
+                     draw = TRUE)+
+    theme(legend.position = 'none') +
+    geom_point(data=data_test, aes(x=time, y=y), alpha=.5) +
+    facet_grid(series~.) +
+    # ylim(c(0,max_temp)) +
+    labs(y = '', x = 'Time')
 
 
 
