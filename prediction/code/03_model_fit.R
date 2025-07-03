@@ -14,26 +14,24 @@ set.seed(2505)
 # (see ?mgcv::s, ?mgcv::te, ?brms::gp and ?mvgam::dynamic for 
 # more information on the kinds of terms supported in {mvgam}
 # formulae). This model takes ~ XXXXXX seconds to fit, after compilation
-mod <- mvgam(y ~ s(time, bs = "tp", k = 6) + 
+mod <- mvgam(y ~ s(time, bs = "tp", k = 6) + # smooth on the time
                
                # Hierarchical intercepts capture variation in average
                # relative abundances
                s(series, bs = 're'),
-             # use_lv = TRUE,
-               
+             use_lv = TRUE,
              
              # Condition on the training data
              data = data_train,
-             
              # Automatically compute forecasts for the test data
              newdata = data_test,
              
              # Beta observations with independent precisions
              family = poisson(),
              trend_model = ZMVN(), # might need to change to RW or ZMVN
-             
-             use_stan = TRUE,
-             chains = 2, 
+             # 
+             # use_stan = TRUE,
+             chains = 2,
              burnin = 500,
              samples = 2000,
              # run_model = FALSE, # because we only want to inspect the priors
@@ -45,6 +43,20 @@ mod <- mvgam(y ~ s(time, bs = "tp", k = 6) +
 
 # not working?
 mod$save_object("mod.rds")
+
+# For now decided to stick directly to Katherine's model so i can get the predictions to show on the graph and then we'll fix whatever might need fixing
+mod <- mvgam(data = data_train,
+            formula =  y ~ s(time, bs = "tp", k = 6) + 
+              s(series, bs = "re"),
+            use_lv = TRUE,
+            family = "poisson",
+            trend_model = 'AR1',
+            use_stan = TRUE,
+            chains = 2, 
+            burnin = 500,
+            samples = 2000
+)
+
 
 
 # https://mc-stan.org/misc/warnings.html#bulk-ess 
@@ -113,14 +125,25 @@ plot(mod, type = 're')
 # the {marginaleffects} universe to visualise conditional effects 
 # on the outcome scale. See ?marginaleffects::plot_predictions 
 # for details, or visit: https://marginaleffects.com/
+# plot_predictions(mod, 
+#                  condition = c('time', 'series', 'series'),
+#                  type = "link",
+#                  newdata = data_test,
+#                  points = 0.5,
+#                  rug = TRUE) +
+#   theme(legend.position = 'none') +
+#   labs(y = 'Abundance', x = 'Time')
+
+# now we are actually predicting but we don't have the points for the true values yet (still a first win!)
 plot_predictions(mod, 
-                 condition = c('time', 'series', 'series'),
-                 type = "link",
                  newdata = data_test,
-                 points = 0.5,
-                 rug = TRUE) +
-  theme(legend.position = 'none') +
-  labs(y = 'Abundance', x = 'Time')
+                 by = c('time', 'series', 'series'),
+                 points = 0.5) +
+  geom_vline(xintercept = max(data_train$time),
+             linetype = 'dashed')+
+    theme(legend.position = 'none') +
+    labs(y = 'Abundance', x = 'Time')
+
 
 for (i in 1:length(unique(data_test$series))) {
   plot(mod, type ="forecast", series =i)
