@@ -143,7 +143,9 @@ plot_predictions(mod,
              linetype = 'dashed')+ # adding a line to emphasize the switch from training to testing
   geom_point(data=data_test, aes(x=time, y=y), alpha=.5)+ # adding the true values for predicted data
   theme(legend.position = 'none') +
-  labs(y = 'Abundance', x = 'Time')
+  labs(y = 'Abundance', x = 'Time') +
+  xlim(c(0,30))
+ggsave("prediction/figures/A_TrendsFuturePredictions.jpeg", width = 15, height=10)
 
 # A second plot where we see the trend of the training data but only the true points for the predicted ones (so not as interesting)
   plot_predictions(mod, 
@@ -154,8 +156,10 @@ plot_predictions(mod,
              linetype = 'dashed')+
   geom_point(data=data_test, aes(x=time, y=y), alpha=.5)+
   theme(legend.position = 'none') +
-  labs(y = 'Abundance', x = 'Time')
-
+  labs(y = 'Abundance', x = 'Time')+
+    xlim(c(0,30))
+  ggsave("prediction/figures/B_TrendsModel.jpeg", width = 15, height=10)
+  
 # I'd like to get both the trend fitted for the training data and the predictions (might be overkill though)
   # start by fixing the y limits for the two graphs so that we can pretend that it's one graph
   max_temp <- plyr::round_any(max(plot_predictions(mod, 
@@ -176,31 +180,50 @@ plot_predictions(mod,
     theme(legend.position = 'none') +
     geom_point(data=data_test, aes(x=time, y=y, color=series), alpha=.5) +
     ylim(c(0,max_temp)) +
-    labs(y = '', x = 'Time')
+    labs(y = '', x = 'Time') + 
+    patchwork::plot_layout(widths=c(.7,.3))
+  ggsave("prediction/figures/C_TrendsBoth_nofacet.jpeg", width = 10, height=7)
+  
+  
   # problem that we're loosing the facet
   # too many species to see everything at once with a facet added but could be an option if 2-3 species
+  # /!\ the scales are free right now, it would be good to do a fixed one per species
   plot_predictions(mod, 
                    by = c('time', 'series'),
                    points = 0.5) +
     theme(legend.position = 'none') +
     labs(y = 'Abundance', x = 'Time') + 
-    facet_grid(series~.) +
-    # ylim(c(0,max_temp)) +
+    facet_grid(series~., scales="free_y") +
     plot_predictions(mod, 
                      newdata = data_test,
                      by = c('time', 'series'),
                      draw = TRUE)+
     theme(legend.position = 'none') +
     geom_point(data=data_test, aes(x=time, y=y), alpha=.5) +
-    facet_grid(series~.) +
-    # ylim(c(0,max_temp)) +
-    labs(y = '', x = 'Time')
+    facet_grid(series~., scales="free_y") +
+    labs(y = '', x = 'Time')+ 
+    patchwork::plot_layout(widths=c(.7,.3))
+  ggsave("prediction/figures/D_TrendsBoth_facet.jpeg", width = 10, height=30)
+  
 
 
 
 
-
-
+  plot_predictions(mod, 
+                   by = c('time', 'series', 'series'),
+                   points = 0.5) +
+    theme(legend.position = 'none') +
+    labs(y = 'Abundance', x = 'Time') + 
+    ylim(c(0,max_temp)) +
+    plot_predictions(mod, 
+                     newdata = data_test,
+                     by = c('time', 'series', 'series'),
+                     draw = TRUE)+
+    theme(legend.position = 'none') +
+    geom_point(data=data_test, aes(x=time, y=y, color=series), alpha=.5) +
+    ylim(c(0,max_temp)) +
+    labs(y = '', x = 'Time') + 
+    patchwork::plot_layout(widths=c(.7,.3))
 
 
 
