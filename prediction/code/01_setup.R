@@ -50,6 +50,10 @@ dat$time <- as.integer(dat$time)-min(dat$time)
 data_train = dat[which(d_crop$YEAR <= 1999),]
 data_test = dat[which(d_crop$YEAR > 2000),]
 
+# subsetting the data with and without a species for out-of-sample forecasting
+data_noAp = filter(dat, series != "Agelaius phoeniceus")
+data_Ap = filter(dat, series == "Agelaius phoeniceus")
+
 
 
 
