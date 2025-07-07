@@ -42,7 +42,11 @@ mod <- mvgam(y ~ s(time, bs = "tp", k = 6) + # smooth on the time
              backend = 'cmdstanr')
 
 # not working?
-mod$save_object("mod.rds")
+# mod$save_object("mod.rds")
+
+# to save mod as .rds if mod$save_object doesn't work
+saveRDS(mod, paste0("prediction/output/mvgam_prediction_mod.rds")) 
+
 
 # For now decided to stick directly to Katherine's model so i can get the predictions to show on the graph and then we'll fix whatever might need fixing
 mod <- mvgam(data = data_train,
