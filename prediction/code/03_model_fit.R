@@ -6,7 +6,7 @@ source("prediction/code/02_data_exploration.R") # Data exploration
 set.seed(2505)
 
 # First import of Nicholas' code (starting line 200) to adjust it - we will filter what is relevant later 
-# https://www.youtube.com/watch?v=0zZopLlomsQ&t=4146s
+# https://github.com/eco4cast/Statistical-Methods-Seminar-Series/blob/main/clark-dynamic_gams/portal_example.R
 
 # We only want to predict relative abundance of species through time.
 # An initial model will attempt to capture variation 
@@ -251,16 +251,9 @@ mod_noAp <- mvgam(data = data_noAp,
   
 saveRDS(mod_noAp, paste0("prediction/output/mvgam_prediction_mod_noAp.rds")) 
   
+mod_noAp <- read_rds("prediction/output/mvgam_prediction_mod_noAp.rds")
+
 ## plot the predictions for Agelaius phoeniceus
-plot_predictions(mod_noAp,
-                   newdata = data_Ap,
-                   condition = c('time', 'series'), # 'series' contains the NEW species name
-                   points = 0.5) +
-    geom_point(data = data_Ap, aes(x = time, y = y), alpha = 0.5) +
-    theme(legend.position = 'none') +
-    labs(y = 'Abundance (forecasted)', x = 'Time') +
-    xlim(c(0, 30))
-  
 plot_predictions(mod_noAp, 
                    newdata = data_Ap,
                    by = c('time', 'series', 'series'), # by is for predictive trends (marginal conditions)
