@@ -6,6 +6,7 @@ source("prediction/code/02_data_exploration.R") # Data exploration
 set.seed(2505)
 
 # First import of Nicholas' code (starting line 200) to adjust it - we will filter what is relevant later 
+# https://www.youtube.com/watch?v=0zZopLlomsQ&t=4146s
 
 # We only want to predict relative abundance of species through time.
 # An initial model will attempt to capture variation 
@@ -14,7 +15,7 @@ set.seed(2505)
 # (see ?mgcv::s, ?mgcv::te, ?brms::gp and ?mvgam::dynamic for 
 # more information on the kinds of terms supported in {mvgam}
 # formulae). This model takes ~ XXXXXX seconds to fit, after compilation
-mod <- mvgam(y ~ s(time, bs = "tp", k = 6) + # smooth on the time
+mod1 <- mvgam(y ~ s(time, bs = "tp", k = 6) + # smooth on the time
                
                # Hierarchical intercepts capture variation in average
                # relative abundances
@@ -42,10 +43,10 @@ mod <- mvgam(y ~ s(time, bs = "tp", k = 6) + # smooth on the time
              backend = 'cmdstanr')
 
 # not working?
-# mod$save_object("mod.rds")
+# mod$save_object("mod1.rds")
 
 # to save mod as .rds if mod$save_object doesn't work
-saveRDS(mod, paste0("prediction/output/mvgam_prediction_mod.rds")) 
+saveRDS(mod1, paste0("prediction/output/mvgam_prediction_mod1.rds")) 
 
 
 # For now decided to stick directly to Katherine's model so i can get the predictions to show on the graph and then we'll fix whatever might need fixing
@@ -61,6 +62,7 @@ mod <- mvgam(data = data_train,
             samples = 2000
 )
 
+saveRDS(mod, paste0("prediction/output/mvgam_prediction_mod.rds")) 
 
 
 # https://mc-stan.org/misc/warnings.html#bulk-ess 
@@ -230,6 +232,53 @@ ggsave("prediction/figures/A_TrendsFuturePredictions.jpeg", width = 15, height=1
     patchwork::plot_layout(widths=c(.7,.3))
 
 
-
-
-
+# Plot for new species predicted
+  
+## mod without the "new species"
+data_noAp$series <- droplevels(data_noAp$series)
+  
+mod_noAp <- mvgam(data = data_noAp,
+                    formula =  y ~ s(time, bs = "tp", k = 5) + 
+                      s(series, bs = "re"),
+                    use_lv = TRUE,
+                    family = "poisson",
+                    trend_model = 'AR1',
+                    use_stan = TRUE,
+                    chains = 2, 
+                    burnin = 500,
+                    samples = 2000)
+  
+  
+saveRDS(mod_noAp, paste0("prediction/output/mvgam_prediction_mod_noAp.rds")) 
+  
+## plot the predictions for Agelaius phoeniceus
+plot_predictions(mod_noAp,
+                   newdata = data_Ap,
+                   condition = c('time', 'series'), # 'series' contains the NEW species name
+                   points = 0.5) +
+    geom_point(data = data_Ap, aes(x = time, y = y), alpha = 0.5) +
+    theme(legend.position = 'none') +
+    labs(y = 'Abundance (forecasted)', x = 'Time') +
+    xlim(c(0, 30))
+  
+plot_predictions(mod_noAp, 
+                   newdata = data_Ap,
+                   by = c('time', 'series', 'series'), # by is for predictive trends (marginal conditions)
+                   points = 0.5) + # transparency
+    geom_point(data=data_Ap, aes(x=time, y=y), alpha=.5)+ # adding the true values for predicted data
+    theme(legend.position = 'none') +
+    labs(y = 'Abundance', x = 'Time') +
+    xlim(c(0,30))
+ggsave("prediction/figures/E_TrendsNewSpecies.jpeg", width = 15, height=10)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
