@@ -58,5 +58,5 @@ data_test <- dat[which(d_crop$YEAR > 2000), ]
 
 # subsetting the data with and without a species for out-of-sample forecasting
 # Replacing red-winged black-bird with a species that has a similar ecology to the rest
-data_noAp <- filter(dat, series != "Agelaius phoeniceus")
-data_Ap <- filter(dat, series == "Agelaius phoeniceus")
+data_noAp <- filter(dat, series != "Mniotilta varia")
+data_Ap <- filter(dat, series == "Mniotilta varia")
