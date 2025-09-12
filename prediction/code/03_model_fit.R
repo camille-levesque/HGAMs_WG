@@ -287,9 +287,7 @@ plot_predictions(mod,
 # Example 2: new species
 # Predict for Mniotilta varia
 
-# TODO:
-# > can we incorporate post-strat here?
-
+# Post-strat: weigh Setophaga coronata highest
 ## mod without the "new species"
 data_noMniotilta$series <- droplevels(data_noMniotilta$series)
 
