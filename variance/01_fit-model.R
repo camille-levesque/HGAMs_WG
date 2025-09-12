@@ -30,7 +30,10 @@ ex <- readRDS("variance/example_species_list.rds")
 
 # Add a rare species for the prediction Example 1
 rare_species <- "Setophaga pinus"
-saveRDS(rare_species, "prediction/example_rare_species.rds")
+
+rare_species_data <- d_crop[d_crop$valid_name == rare_species, ]
+
+saveRDS(rare_species_data, "prediction/example_rare_species.rds")
 
 d_crop <- dplyr::filter(d_crop, valid_name %in% ex)
 d_crop <- dplyr::filter(d_crop, valid_name != "Vireo olivaceus")
