@@ -22,8 +22,12 @@ d_crop <- readRDS("variance/example_species_df.rds")
 # Data was cropped by KH in her script (variance/01_fit-model.R)
 # Data regrouped by species per year (for one localization 44.55;-74.4833)
 
+# Add a rare/undersampled species for Example 1
+d_crop_rare <- readRDS("prediction/example_rare_species.rds")
+
+d_crop_merged <- rbind(d_crop, d_crop_rare)
 # Rename columns and adjust abundance
-dat <- d_crop %>%
+dat <- d_crop_merged %>%
   rename(
     y = ABUNDANCE,
     series = valid_name, # for the mvgam requirement
@@ -53,5 +57,6 @@ data_train <- dat[which(d_crop$YEAR <= 1999), ]
 data_test <- dat[which(d_crop$YEAR > 2000), ]
 
 # subsetting the data with and without a species for out-of-sample forecasting
+# Replacing red-winged black-bird with a species that has a similar ecology to the rest
 data_noAp <- filter(dat, series != "Agelaius phoeniceus")
 data_Ap <- filter(dat, series == "Agelaius phoeniceus")
