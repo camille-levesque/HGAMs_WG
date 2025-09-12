@@ -8,33 +8,43 @@ source("prediction/code/01_setup.R") # Source previous script, where we import &
 
 # Look at the variables' format
 dplyr::glimpse(dat)
-  # We check the formats of the variables ; we do not need to change them.
+# We check the formats of the variables ; we do not need to change them.
 
 # NAs
 max(d_crop$YEAR)
-image(is.na(t(dat %>%
-                dplyr::arrange(dplyr::desc(time)))), axes = F,
-      col = c('grey80', 'darkred'))
-axis(3, at = seq(0,1, len = NCOL(dat)), 
-     labels = colnames(dat))
-  # No NAs
+image(
+  is.na(t(dat %>%
+    dplyr::arrange(dplyr::desc(time)))),
+  axes = F,
+  col = c("grey80", "darkred")
+)
+axis(3,
+  at = seq(0, 1, len = NCOL(dat)),
+  labels = colnames(dat)
+)
+# No NAs
 
 # Plot all of the time series together
 plot_mvgam_series(data = dat, y = "y", series = "all")
 
 # Plot some more in-depth features for individual series
 ## 4 first species
-plot_mvgam_series(data = dat, y = "y", series = 1) 
+plot_mvgam_series(data = dat, y = "y", series = 1)
 plot_mvgam_series(data = dat, y = "y", series = 2)
 plot_mvgam_series(data = dat, y = "y", series = 3)
 plot_mvgam_series(data = dat, y = "y", series = 4)
 
 
+# What are the species?
+unique(dat$series)
 
+# Prevalence of species
+options(width = 200)
 
+by(dat$rel_abun, dat$series, summary)
 
-
-
-
-
-
+ggplot(dat, aes(x = rel_abun)) +
+  geom_histogram(bins = 15, fill = "steelblue", alpha = 0.7) +
+  facet_wrap(~series, scales = "free_y") +
+  labs(x = "Relative Abundance", y = "Frequency") +
+  theme_minimal()
