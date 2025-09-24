@@ -325,3 +325,93 @@ plot_predictions(mod_noMniotilta,
 ggsave("prediction/figures/E_TrendsNewSpecies.jpeg", width = 15, height = 10)
 
 # Example 1: create smooth for Setophaga pinus, a data-poor group
+#### ALI TESTING 
+# I have an issue that one of the species has 3 observations which is messing the model so I'm removing it
+data_noMniotilta <- data_noMniotilta[data_noMniotilta$series!="Setophaga pinus",]
+data_noMniotilta$series <- droplevels(data_noMniotilta$series)
+
+# fitting a model with a smooth on time and at the species level
+mod_noMniotilta <- mvgam(
+  data = data_noMniotilta,
+  formula = y ~ s(time, bs = "tp", k = 5) +
+    s(series, bs = "re"),
+  use_lv = TRUE,
+  family = "poisson",
+  trend_model = "AR1",
+  use_stan = TRUE,
+  chains = 2,
+  burnin = 500,
+  samples = 2000
+)
+
+# creating a new df that will contain the time and our new species (as a factor)
+data_Ap <- data.frame(time=unique(data_noMniotilta$time)
+                      , series = "Mniotilta")
+data_Ap$series <- factor(data_Ap$series)
+# extracting the values for the predictions of our new species
+idk=data.frame(predict(mod_noMniotilta,
+                       newdata = data_Ap, type="response"))
+# adding the rest of the info to the df to help plot it
+idk$time=unique(data_noMniotilta$time)
+idk$series = "Mniotilta"
+# we can then plot it as well as all the other species
+plot_predictions(mod_noMniotilta,
+                 newdata = data_Ap,
+                 by = c("time", "series", "series"), # by is for predictive trends (marginal conditions)
+                 points = 0.5
+)+ # transparency
+  geom_point(data = idk, aes(x = time, y = Estimate), alpha = .5) + # adding the true values for predicted data
+  theme(legend.position = "none") +
+  labs(y = "Abundance", x = "Time") +
+  xlim(c(0, 30))
+
+# Now let's try to use that post stratification thing?
+# best way I can figure out how to do it is add a new variable that says whether my species are close to the one we'll try to predict (= another level of group that is higher than the species)
+data_noMniotilta$similar.species <- "no"
+# setting it to 'no' for all species except our yellow warbler
+data_noMniotilta$similar.species[data_noMniotilta$series=="Setophaga coronata"] <- "yes"
+data_noMniotilta$similar.species <- factor(data_noMniotilta$similar.species)
+
+# fitting a model with a smooth on time, on our new group and on the species
+mod_noMniotilta <- mvgam(
+  data = data_noMniotilta,
+  formula = y ~ s(time, bs = "tp", k = 5) +
+    s(similar.species, bs="re") +
+    s(series, bs = "re"),
+  use_lv = TRUE,
+  family = "poisson",
+  trend_model = "AR1",
+  use_stan = TRUE,
+  chains = 2,
+  burnin = 500,
+  samples = 2000
+)
+
+# creating a df with out new species along with the value for the new group
+data_Ap <- data.frame(time=unique(data_noMniotilta$time)
+                      , similar.species = "yes"
+                      , series = "Mniotilta")
+data_Ap$series <- factor(data_Ap$series)
+# extracting the values for the predictions of our new species
+idk=data.frame(predict(mod_noMniotilta,
+        newdata = data_Ap, type="response"))
+# adding the rest of the info to the df to help plot it
+idk$time=unique(data_noMniotilta$time)
+idk$series = "Mniotilta"
+idk$similar.species = "yes"
+
+# and now we're plotting all of our species + the new one
+# we'll have in different colors the species we used for our extra smoother
+# not sure what the difference is between the blue line and the black dots?
+# maybe blue line = smoother for the yellow warbler and black lines = predictions based on global smooth + yellow warbler
+plot_predictions(mod_noMniotilta,
+                 newdata = data_Ap,
+                 by = c("time", "similar.species", "series"), # by is for predictive trends (marginal conditions)
+                 points = 0.5
+)+ # transparency
+  geom_point(data = idk, aes(x = time, y = Estimate), alpha = .5) + # adding the true values for predicted data
+  theme(legend.position = "none") +
+  labs(y = "Abundance", x = "Time") +
+  xlim(c(0, 30))
+
+#  /!\ the two results look very similar BUT pay attention that the abundance range changes from 0-125 to 0-150
