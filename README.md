@@ -8,15 +8,15 @@ For the coded examples, we will be using the North American Breeding Bird Survey
 
 The raw data summary from BioTIME describes the dataset's characteristics:
 
-Realm: Terrestrial
-Climate: Temperate
-Biome: Temperate grasslands, savannas and shrublands
-Central latitude: 40.809241
-Central longitude: -96.187269
-Duration: 30 years, from 1978 to 2007
-699142 records
-383 distinct species
-Across the time series, _Agelaius phoeniceus_ is the most frequently occurring species.
+- Realm: Terrestrial
+- Climate: Temperate
+- Biome: Temperate grasslands, savannas and shrublands
+- Central latitude: 40.809241
+- Central longitude: -96.187269
+- Duration: 30 years, from 1978 to 2007
+- 699142 records
+- 383 distinct species
+- Across the time series, _Agelaius phoeniceus_ is the most frequently occurring species.
 
 ### Data source
 
