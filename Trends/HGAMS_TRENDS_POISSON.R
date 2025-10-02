@@ -43,18 +43,20 @@ print(head(community_ts_subset))
 #-----------------------------------------------------------------------------
 # STEP 3: FIT POISSON MODELS (S vs GS) AND COMPARE AIC
 #-----------------------------------------------------------------------------
-# We will fit both models using the Poisson family, suitable for count data.
+# Here, we are fitting both model "S" and "GS" from Pedersen et al. (2019) paper.
+# As we are working with abundance (count) data, we'll use the Poisson family.
 
 # MODEL 1: The 'S' Model (Separate smooths for each species)
-gam_model_S <- gam(
-  abundance ~ species + s(year, by = species, bs = "tp"),
+hgam_model_S <- gam(
+  abundance ~ species +
+  s(year, by = species, bs = "tp"), 
   data = community_ts_subset,
   family = poisson(), # Using Poisson family
   method = "REML"
 )
 
 # MODEL 2: The 'GS' Model (Global smooth + species-specific deviations)
-gam_model_GS <- gam(
+hgam_model_GS <- gam(
   abundance ~ s(year, bs = "tp") + s(year, by = species, bs = "tp"),
   data = community_ts_subset,
   family = poisson(), # Using Poisson family
@@ -62,8 +64,8 @@ gam_model_GS <- gam(
 )
 
 # Compare the models using AIC
-aic_S <- AIC(gam_model_S)
-aic_GS <- AIC(gam_model_GS)
+aic_S <- AIC(hgam_model_S)
+aic_GS <- AIC(hgam_model_GS)
 
 # Print the results for comparison
 print(paste("AIC for Poisson S Model:", round(aic_S, 2)))
