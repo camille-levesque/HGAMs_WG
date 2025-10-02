@@ -1,20 +1,23 @@
+# Script to plot trends and calculate derivative-based indicators on a multi-species dataset.
+
 #-----------------------------------------------------------------------------
-# STEP 1: PACKAGES AND LIBRARIES
+# STEP 1: PACKAGES & LIBRARIES
 #-----------------------------------------------------------------------------
 
 # install.packages(c("mgcv", "dplyr", "ggplot2", "tidyr", "mvtnorm"))
 
-library(mgcv)
-library(dplyr)
-library(ggplot2)
-library(tidyr)
-library(mvtnorm)
+library(mgcv)    # For fitting Generalized Additive Models (GAMs) and Hierarchical GAMs
+library(dplyr)   # For data manipulation 
+library(ggplot2) # For data visualization
+library(tidyr)   # For reshaping and tidying data
+library(mvtnorm) # For working with multivariate normal and t-distributions
+library(here)    # For handling file paths relative to the project root
 
 #-----------------------------------------------------------------------------
-# STEP 2: LOAD AND PRE-PROCESS THE DATA
+# STEP 2: IMPORT AND PRE-PROCESS THE DATA
 #-----------------------------------------------------------------------------
 # Loading the dataset
-data_195 <- read.csv("data_195.csv")
+data_195 <- read.csv("data/clean/data_195.csv") # This is the cleaned data (in HGAMs_WG/data/clean)
 
 # Aggregating biomass data to get a yearly abundance for each species.
 community_ts <- data_195 %>%
@@ -23,7 +26,7 @@ community_ts <- data_195 %>%
   summarise(ABUNDANCE = n(), .groups = 'drop') %>%
   rename(year = YEAR, species = valid_name, abundance = ABUNDANCE)
 
-# Selecting the top 30 most frequently observed species
+# Selecting the top 30 most frequently observed species (i.e., highest in abundance)
 top_species <- community_ts %>%
   group_by(species) %>%
   summarise(total_abundance = sum(abundance)) %>%
@@ -33,8 +36,6 @@ top_species <- community_ts %>%
 
 community_ts_subset <- community_ts %>%
   filter(species %in% top_species) %>%
-  # Complete the time series for each species, filling missing years with 0
-  complete(species, year = full_seq(year, 1), fill = list(abundance = 0)) %>%
   mutate(species = as.factor(species))
 
 print(head(community_ts_subset))
