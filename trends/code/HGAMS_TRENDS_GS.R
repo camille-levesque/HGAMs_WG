@@ -5,7 +5,7 @@
 # STEP 1: PACKAGES & LIBRARIES
 #-----------------------------------------------------------------------------
 
-# install.packages(c("mgcv", "dplyr", "ggplot2", "tidyr", "mvtnorm"))
+# install.packages(c("mgcv", "dplyr", "ggplot2", "tidyr", "mvtnorm", "here", "gratia", "gridExtra"))
 
 library(mgcv)    # For fitting Generalized Additive Models (GAMs) and Hierarchical GAMs
 library(dplyr)   # For data manipulation 
@@ -14,6 +14,7 @@ library(tidyr)   # For reshaping and tidying data
 library(mvtnorm) # For working with multivariate normal and t-distributions
 library(here)    # For handling file paths relative to the project root
 library(gratia)
+library(gridExtra)
 
 #-----------------------------------------------------------------------------
 # STEP 2: IMPORT AND PRE-PROCESS THE DATA
@@ -138,8 +139,9 @@ plot1_mean_rof <- ggplot(final_indicators_GS, aes(x = year)) +
   geom_line(aes(y = mean_rate_of_change_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
-    y = "Mean rate of change", x = "Year",
-  ) +
+    title = "Indicator 1",
+    y = "Mean rate of change (Abundance / Year)", x = "Year",
+  ) + theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
   theme_minimal()
 
 # Plot 2: Mean Per-Capita Rate of Change Comparison
@@ -148,8 +150,10 @@ plot2_mean_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
   geom_line(aes(y = mean_per_capita_rate_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
+    title = "Indicator 2",
     y = "Mean per-capita rate of change", x = "Year",
   ) +
+theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
   theme_minimal()
 
 # Plot 3: SD of Per-Capita Rates Comparison
@@ -158,8 +162,9 @@ plot3_SD_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
   geom_line(aes(y = sd_per_capita_rate_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
+    title = "Indicator 3",
     y = "SD of per-capita rates of change", x = "Year",
-  ) +
+  ) + theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
   theme_minimal()
 
 # Print the comparison plots
@@ -199,4 +204,6 @@ print(species_trends_plot_GS)
 # STEP 8: MAKING A FIGURE WITH THE PLOTS OF INDICATORS
 #-----------------------------------------------------------------------------
 
-
+png("trends/figures/trends_indicators_plots.png", width = 3000, height = 1000, res = 300) 
+grid.arrange(plot1_mean_rof, plot2_mean_percap_rof, plot3_SD_percap_rof, ncol = 3)
+dev.off()
