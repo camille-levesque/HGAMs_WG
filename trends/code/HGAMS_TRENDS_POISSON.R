@@ -73,7 +73,7 @@ aic_GS <- AIC(gam_model_GS)
 # Print the results for comparison
 print(paste("AIC for Poisson S Model:", round(aic_S, 2)))
 print(paste("AIC for Poisson GS Model:", round(aic_GS, 2)))
-
+  # Best AIC score: Model GS
 
 #-----------------------------------------------------------------------------
 # STEP 4: DERIVATIVES AND INDICATORS FOR THE 'S' MODEL
