@@ -217,7 +217,7 @@ combined_indicators <- bind_rows(final_indicators_S, final_indicators_GS)
 # Plot 1: Mean Rate of Change Comparison
 plot1_compare <- ggplot(combined_indicators, aes(x = year, group = model_type)) +
   geom_ribbon(aes(ymin = mean_rate_of_change_lower_ci, ymax = mean_rate_of_change_upper_ci, fill = model_type), alpha = 0.2) +
-  geom_line(aes(y = mean_rate_of_change_median, color = model_type), size = 1) +
+  geom_line(aes(y = mean_rate_of_change_median, color = model_type), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
     title = "Comparison: Mean Rate of Change",
