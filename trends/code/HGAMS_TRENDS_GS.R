@@ -61,9 +61,19 @@ gam_model_GS <- gam(
 #-----------------------------------------------------------------------------
 # STEP 4: DERIVATIVES AND INDICATORS FOR THE 'GS' MODEL
 #-----------------------------------------------------------------------------
-# This section repeats the process, but this time for the GS model.
+
+# Create a prediction dataset
+predict_data <- community_ts_subset %>%
+  select(year, species) %>%
+  distinct()
+
+# Define a small number 'eps' for numerical differentiation
+eps <- 1e-7
+predict_data_p_eps <- predict_data %>% mutate(year = year + eps)
+predict_data_m_eps <- predict_data %>% mutate(year = year - eps)
 
 # Generate posterior simulations from the GS model
+n_sim <- 250
 set.seed(42)
 sim_lp_GS <- predict(gam_model_GS, newdata = predict_data, type = "lpmatrix")
 sim_coef_GS <- rmvnorm(n_sim, coef(gam_model_GS), vcov(gam_model_GS, unconditional = TRUE))
@@ -153,9 +163,9 @@ plot3_SD_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
   theme_minimal()
 
 # Print the comparison plots
-print(plot1_compare)
-print(plot2_compare)
-print(plot3_compare)
+print(plot1_mean_rof)
+print(plot2_mean_percap_rof)
+print(plot3_SD_percap_rof)
 
 #-----------------------------------------------------------------------------
 # STEP 6: PLOT INDIVIDUAL SPECIES TRENDS FROM THE 'GS' MODEL
