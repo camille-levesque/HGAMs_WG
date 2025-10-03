@@ -13,6 +13,7 @@ library(ggplot2) # For data visualization
 library(tidyr)   # For reshaping and tidying data
 library(mvtnorm) # For working with multivariate normal and t-distributions
 library(here)    # For handling file paths relative to the project root
+library(gratia)
 
 #-----------------------------------------------------------------------------
 # STEP 2: IMPORT AND PRE-PROCESS THE DATA
@@ -42,22 +43,12 @@ community_ts_subset <- community_ts %>%
 print(head(community_ts_subset))
 
 #-----------------------------------------------------------------------------
-# STEP 3: FIT POISSON MODELS (S vs GS) AND COMPARE AIC
+# STEP 3: FIT POISSON MODEL GS
 #-----------------------------------------------------------------------------
 # Here, we are fitting model "GS" from Pedersen et al. (2019) paper.
 # As we are working with abundance (count) data, we'll use the Poisson family.
 
-# MODEL 1: The 'S' Model (Separate smooths for each species)
-gam_model_S <- gam(
-  abundance ~ species +
-    s(year, by = species, bs = "fs") + # Species-specific smoother: a factor-smoother interaction of year and species
-    s(species, bs = "re"), # Species as random effects (gives an intercept per species)
-  data = community_ts_subset,
-  family = poisson(), # Using Poisson family
-  method = "REML"
-)
-
-# MODEL 2: The 'GS' Model (Global smooth + species-specific deviations)
+# MODEL: The 'GS' Model (Global smooth + species-specific deviations)
 gam_model_GS <- gam(
   abundance ~ s(year, bs = "tp") + # Global relationship
     s(year, by = species, bs = "fs") + # Species-specific smoother: a factor-smoother interaction of year and species
@@ -67,89 +58,8 @@ gam_model_GS <- gam(
   method = "REML"
 )
 
-# Compare the models using AIC
-aic_S <- AIC(gam_model_S)
-aic_GS <- AIC(gam_model_GS)
-
-# Print the results for comparison
-print(paste("AIC for Poisson S Model:", round(aic_S, 2)))
-print(paste("AIC for Poisson GS Model:", round(aic_GS, 2)))
-# Best AIC score: Model GS
-
 #-----------------------------------------------------------------------------
-# STEP 4: DERIVATIVES AND INDICATORS FOR THE 'S' MODEL
-#-----------------------------------------------------------------------------
-# This entire section calculates the three community indicators based ONLY on the S model.
-
-# Create a prediction dataset
-predict_data <- community_ts_subset %>%
-  select(year, species) %>%
-  distinct()
-
-# Define a small number 'eps' for numerical differentiation
-eps <- 1e-7
-predict_data_p_eps <- predict_data %>% mutate(year = year + eps)
-predict_data_m_eps <- predict_data %>% mutate(year = year - eps)
-
-# Generate posterior simulations from the S model
-n_sim <- 250
-set.seed(42)
-sim_lp_S <- predict(gam_model_S, newdata = predict_data, type = "lpmatrix")
-sim_coef_S <- rmvnorm(n_sim, coef(gam_model_S), vcov(gam_model_S, unconditional = TRUE))
-
-# Calculate predicted values and derivatives for the S model
-pred_original_S <- exp(sim_lp_S %*% t(sim_coef_S))
-pred_p_eps_S <- exp(predict(gam_model_S, newdata = predict_data_p_eps, type = "lpmatrix") %*% t(sim_coef_S))
-pred_m_eps_S <- exp(predict(gam_model_S, newdata = predict_data_m_eps, type = "lpmatrix") %*% t(sim_coef_S))
-first_derivative_S <- (pred_p_eps_S - pred_m_eps_S) / (2 * eps)
-per_capita_rate_S <- first_derivative_S / (pred_original_S + 1e-9)
-
-# Reshape simulation results for the S model
-sim_deriv_long_S <- as.data.frame(first_derivative_S) %>%
-  mutate(row = 1:n()) %>%
-  pivot_longer(-row, names_to = "sim_id", values_to = "derivative")
-sim_per_capita_long_S <- as.data.frame(per_capita_rate_S) %>%
-  mutate(row = 1:n()) %>%
-  pivot_longer(-row, names_to = "sim_id", values_to = "per_capita_rate")
-
-sim_results_S <- predict_data %>%
-  mutate(row = 1:n()) %>%
-  left_join(sim_deriv_long_S, by = "row") %>%
-  left_join(sim_per_capita_long_S, by = c("row", "sim_id"))
-
-# Calculate community indicators for the S model
-community_indicators_S <- sim_results_S %>%
-  group_by(year, sim_id) %>%
-  summarise(
-    mean_rate_of_change = mean(derivative, na.rm = TRUE),
-    mean_per_capita_rate = mean(per_capita_rate, na.rm = TRUE),
-    sd_per_capita_rate = sd(per_capita_rate, na.rm = TRUE),
-    .groups = 'drop'
-  )
-
-# Final summary of indicators for the S model
-final_indicators_S <- community_indicators_S %>%
-  group_by(year) %>%
-  summarise(
-    across(
-      .cols = c(mean_rate_of_change, mean_per_capita_rate, sd_per_capita_rate),
-      .fns = list(
-        median = ~median(.x, na.rm = TRUE),
-        lower_ci = ~quantile(.x, 0.025, na.rm = TRUE),
-        upper_ci = ~quantile(.x, 0.975, na.rm = TRUE)
-      ),
-      .names = "{.col}_{.fn}"
-    ),
-    .groups = 'drop'
-  ) %>%
-  mutate(model_type = "S Model") # Add a label for plotting
-
-print("--- Indicators from S Model ---")
-print(head(final_indicators_S))
-
-
-#-----------------------------------------------------------------------------
-# STEP 5: DERIVATIVES AND INDICATORS FOR THE 'GS' MODEL
+# STEP 4: DERIVATIVES AND INDICATORS FOR THE 'GS' MODEL
 #-----------------------------------------------------------------------------
 # This section repeats the process, but this time for the GS model.
 
@@ -208,46 +118,37 @@ final_indicators_GS <- community_indicators_GS %>%
 print("--- Indicators from GS Model ---")
 print(head(final_indicators_GS))
 
-
 #-----------------------------------------------------------------------------
-# STEP 6: PLOT AND COMPARE INDICATORS FROM BOTH MODELS
+# STEP 5: PLOT DERIVATIVE-BASED INDICATORS
 #-----------------------------------------------------------------------------
-# Combine the indicator results from both models into one dataframe
-combined_indicators <- bind_rows(final_indicators_S, final_indicators_GS)
 
 # Plot 1: Mean Rate of Change Comparison
-plot1_compare <- ggplot(combined_indicators, aes(x = year, group = model_type)) +
-  geom_ribbon(aes(ymin = mean_rate_of_change_lower_ci, ymax = mean_rate_of_change_upper_ci, fill = model_type), alpha = 0.2) +
-  geom_line(aes(y = mean_rate_of_change_median, color = model_type), linewidth = 1) +
+plot1_mean_rof <- ggplot(final_indicators_GS, aes(x = year)) +
+  geom_ribbon(aes(ymin = mean_rate_of_change_lower_ci, ymax = mean_rate_of_change_upper_ci), alpha = 0.2) +
+  geom_line(aes(y = mean_rate_of_change_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
-    title = "Comparison: Mean Rate of Change",
-    y = "Mean Rate of Change (Abundance / Year)", x = "Year",
-    color = "Model Type", fill = "Model Type"
+    y = "Mean rate of change", x = "Year",
   ) +
   theme_minimal()
 
 # Plot 2: Mean Per-Capita Rate of Change Comparison
-plot2_compare <- ggplot(combined_indicators, aes(x = year, group = model_type)) +
-  geom_ribbon(aes(ymin = mean_per_capita_rate_lower_ci, ymax = mean_per_capita_rate_upper_ci, fill = model_type), alpha = 0.2) +
-  geom_line(aes(y = mean_per_capita_rate_median, color = model_type), size = 1) +
+plot2_mean_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
+  geom_ribbon(aes(ymin = mean_per_capita_rate_lower_ci, ymax = mean_per_capita_rate_upper_ci), alpha = 0.2) +
+  geom_line(aes(y = mean_per_capita_rate_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
-    title = "Comparison: Mean Per-Capita Rate of Change",
-    y = "Mean Per-Capita Rate (Year⁻¹)", x = "Year",
-    color = "Model Type", fill = "Model Type"
+    y = "Mean per-capita rate of change", x = "Year",
   ) +
   theme_minimal()
 
 # Plot 3: SD of Per-Capita Rates Comparison
-plot3_compare <- ggplot(combined_indicators, aes(x = year, group = model_type)) +
-  geom_ribbon(aes(ymin = sd_per_capita_rate_lower_ci, ymax = sd_per_capita_rate_upper_ci, fill = model_type), alpha = 0.2) +
-  geom_line(aes(y = sd_per_capita_rate_median, color = model_type), size = 1) +
+plot3_SD_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
+  geom_ribbon(aes(ymin = sd_per_capita_rate_lower_ci, ymax = sd_per_capita_rate_upper_ci), alpha = 0.2) +
+  geom_line(aes(y = sd_per_capita_rate_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
-    title = "Comparison: SD of Per-Capita Rates of Change",
-    y = "SD of Per-Capita Rates (Year⁻¹)", x = "Year",
-    color = "Model Type", fill = "Model Type"
+    y = "SD of per-capita rates of change", x = "Year",
   ) +
   theme_minimal()
 
@@ -256,38 +157,8 @@ print(plot1_compare)
 print(plot2_compare)
 print(plot3_compare)
 
-
 #-----------------------------------------------------------------------------
-# STEP 7: PLOT INDIVIDUAL SPECIES TRENDS FROM THE 'S' MODEL
-#-----------------------------------------------------------------------------
-# Get predictions from the S model
-preds_S <- predict(gam_model_S, newdata = predict_data, type = "response", se.fit = TRUE)
-plot_data_S <- predict_data %>%
-  mutate(
-    fit = preds_S$fit,
-    se = preds_S$se.fit,
-    lower_ci = fit - 1.96 * se,
-    upper_ci = fit + 1.96 * se
-  ) %>%
-  left_join(community_ts_subset, by = c("year", "species"))
-
-# Plot trends from S model
-species_trends_plot_S <- ggplot(plot_data_S, aes(x = year)) +
-  geom_point(aes(y = abundance), color = "grey60", alpha = 0.8) +
-  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci), fill = "steelblue", alpha = 0.3) +
-  geom_line(aes(y = fit), color = "steelblue", size = 1) +
-  facet_wrap(~ species, scales = "free_y") +
-  labs(
-    title = "Fitted Abundance Trends for Each Species (S Model)",
-    y = "Predicted Abundance", x = "Year"
-  ) +
-  theme_minimal()
-
-print(species_trends_plot_S)
-
-
-#-----------------------------------------------------------------------------
-# STEP 8: PLOT INDIVIDUAL SPECIES TRENDS FROM THE 'GS' MODEL
+# STEP 6: PLOT INDIVIDUAL SPECIES TRENDS FROM THE 'GS' MODEL
 #-----------------------------------------------------------------------------
 # Get predictions from the GS model
 preds_GS <- predict(gam_model_GS, newdata = predict_data, type = "response", se.fit = TRUE)
