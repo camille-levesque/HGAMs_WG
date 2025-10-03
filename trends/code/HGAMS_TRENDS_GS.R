@@ -194,3 +194,9 @@ species_trends_plot_GS <- ggplot(plot_data_GS, aes(x = year)) +
   theme_minimal()
 
 print(species_trends_plot_GS)
+
+#-----------------------------------------------------------------------------
+# STEP 8: MAKING A FIGURE WITH THE PLOTS OF INDICATORS
+#-----------------------------------------------------------------------------
+
+
