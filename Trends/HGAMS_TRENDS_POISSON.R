@@ -47,25 +47,28 @@ print(head(community_ts_subset))
 # As we are working with abundance (count) data, we'll use the Poisson family.
 
 # MODEL 1: The 'S' Model (Separate smooths for each species)
-hgam_model_S <- gam(
+gam_model_S <- gam(
   abundance ~ species +
-  s(year, by = species, bs = "tp"), 
+  s(year, by = species, bs = "fs") + # Species-specific smoother: a factor-smoother interaction of year and species
+  s(species, bs = "re"), # Species as random effects (gives an intercept per species)
   data = community_ts_subset,
   family = poisson(), # Using Poisson family
   method = "REML"
 )
 
 # MODEL 2: The 'GS' Model (Global smooth + species-specific deviations)
-hgam_model_GS <- gam(
-  abundance ~ s(year, bs = "tp") + s(year, by = species, bs = "tp"),
+gam_model_GS <- gam(
+  abundance ~ s(year, bs = "tp") + # Global relationship
+    s(year, by = species, bs = "fs") + # Species-specific smoother: a factor-smoother interaction of year and species
+    s(species, bs="re"), # Species as random effects (gives an intercept per species)
   data = community_ts_subset,
   family = poisson(), # Using Poisson family
   method = "REML"
 )
 
 # Compare the models using AIC
-aic_S <- AIC(hgam_model_S)
-aic_GS <- AIC(hgam_model_GS)
+aic_S <- AIC(gam_model_S)
+aic_GS <- AIC(gam_model_GS)
 
 # Print the results for comparison
 print(paste("AIC for Poisson S Model:", round(aic_S, 2)))
