@@ -7,6 +7,8 @@ library(gratia) # Graceful ggplot-based graphics for GAMs
 library(marginaleffects) # Compute interpretable model predictions
 library(tidyverse)
 library(mgcv)
+library(cmdstanr)
+cmdstanr::set_cmdstan_path("C:/Users/ilebe/.cmdstan/cmdstan-2.32.1") # put your stan install path
 
 # load data
 
