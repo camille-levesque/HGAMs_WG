@@ -24,6 +24,7 @@
 # Load previous scripts ---------------------------------------------------
 source("prediction/code/01_setup.R") # Import & format data and load libraries
 source("prediction/code/02_data_exploration.R") # Data exploration
+
 # Model fitting  --------------------------------------------------------
 
 set.seed(2505)
@@ -415,3 +416,117 @@ plot_predictions(mod_noMniotilta,
   xlim(c(0, 30))
 
 #  /!\ the two results look very similar BUT pay attention that the abundance range changes from 0-125 to 0-150
+
+
+
+#### Nick's additions ####
+data_train <- data_train %>%
+  droplevels()
+data_test <- data_test %>%
+  droplevels()
+
+# Plot series
+plot_mvgam_series(
+  data = data_train,
+  newdata = data_test,
+  series = "all"
+)
+
+# Set up a State-Space hierarchical GAM with AR1 dynamics for autocorrelation
+mod_nick <- mvgam(
+  data = data_train,
+  formula = y ~ 
+    s(series, bs = "re"),
+  
+  # Hierarchical smooths of time set up as a 
+  # State-Space model for sampling efficiency
+  trend_formula = ~
+    s(time, bs = "tp", k = 6) +
+    s(time, trend, bs = "sz", k = 6),
+  family = poisson(),
+  
+  # AR1 for "residual" autocorrelation
+  trend_model = AR(p = 1),
+  noncentred = TRUE,
+  priors = prior(exponential(2),
+                 class = sigma),
+  backend = "cmdstanr"
+)
+summary(mod_nick, include_betas = FALSE)
+
+# Plot the estimated smooth trends
+gratia::draw(mod_nick, trend_effects = TRUE)
+conditional_effects(mod_nick)
+plot_predictions(
+  mod_nick,
+  by = c("time", "series", "series"),
+  newdata = datagrid(time = 1:max(data_test$time),
+                     series = unique),
+  type = "expected"
+)
+
+# Obviously the splines show high extrapolation uncertainty into the 
+# test time points, but that is ok as it isn't the focus of this exercise. But if
+# we wanted better forecasts, I'd use GPs in place of the penalized smooths
+# https://ecogambler.netlify.app/blog/autocorrelated-gams/
+
+# Look at some of the AR1 estimates
+mcmc_plot(mod_nick, variable = "ar1", regex = TRUE)
+
+# Post-stratification: predict trends for all species and weight these based
+# on their "distance" to the new species
+unique_species <- levels(data_train$series)
+
+# Add some weights; here a higher value means that species is "closer" to the
+# un-modelled target species. This could for example be the inverse of a phylogenetic
+# or functional distance metric
+species_weights <- pmax(
+  1, 
+  rnbinom(
+    nlevels(data_train$series), 
+    mu = 5, 
+    size = 1
+  )
+)
+
+# Generate the prediction grid; here we replicate each species' temporal grid
+# a number of times, with the number of replications determined by the weight
+# vector above
+pred_dat <- do.call(
+  rbind, 
+  lapply(seq_along(unique_species), function(sp){
+    do.call(
+      rbind, 
+      replicate(
+        species_weights[sp],
+        data.frame(time = 1:max(data_test$time),
+                   series = unique_species[sp]),
+        simplify = FALSE
+      )
+    )
+  })
+) %>%
+  dplyr::mutate(series = factor(series, levels = levels(data_train$series)))
+
+# Marginalize over "time" to compute the weighted average predictions, accounting
+# for full uncertainty in the species-level trends but IGNORING the AR1 process
+post_strat_trend <- marginaleffects::avg_predictions(
+  mod_nick,
+  newdata = pred_dat,
+  by = "time",
+  type = "expected"
+)
+
+# Plot the post-stratified trend expectations
+ggplot(post_strat_trend,
+       aes(x = time, y = estimate)) +
+  geom_ribbon(aes(ymax = conf.high,
+                  ymin = conf.low),
+              colour = NA,
+              fill = "darkred",
+              alpha = 0.4) +
+  geom_line(colour = "darkred") +
+  theme_classic() +
+  labs(y = "Post-stratified trend prediction",
+       x = "Time")
+
