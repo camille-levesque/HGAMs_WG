@@ -103,7 +103,7 @@ y ~ s(time, bs = "tp", k = 5) + s(similar.species, bs="re") + s(series, bs = "re
 - Species replicated in prediction grid based on similarity weights
 - Marginalized predictions account for full uncertainty while ignoring AR(1) process
 
-### Approach 4: State-Space Post-Stratification for BWAW (mod_strat_BAWW)
+### Approach 4: State-Space Post-Stratification for BAWW (mod_strat_BAWW)
 **Model Type**: State-Space Hierarchical GAM specifically for Black-and-white Warbler prediction
 
 **Formula**:
@@ -115,11 +115,11 @@ y ~ s(series, bs = "re")
 trend_formula = ~ s(time, bs = "tp", k = 6) + s(time, trend, bs = "sz", k = 6)
 ```
 
-**Training Data**: Excludes *Mniotilta varia* (Black-and-white Warbler) from `data_train_noBWAW`
+**Training Data**: Excludes *Mniotilta varia* (Black-and-white Warbler) from `data_train_noBAWW`
 
 **Post-stratification Strategy**:
 - **Primary weight**: *Setophaga coronata* (Yellow-rumped Warbler) weighted **10x higher**
-- **Secondary weights**: Other *Setophaga* species weighted **3x higher** 
+- **Secondary weights**: Other *Setophaga* species weighted **3x higher**
 - **Baseline weight**: All other species weighted **1x**
 - **Method**: Species-specific replication in prediction grid based on ecological similarity
 
@@ -134,10 +134,10 @@ trend_formula = ~ s(time, bs = "tp", k = 6) + s(time, trend, bs = "sz", k = 6)
 **Implementation**:
 ```r
 # Calculate offset from first observation
-abundance_offset = first_year_BWAW$y - first_year_pred$estimate
+abundance_offset = first_year_BAWW$y - first_year_pred$estimate
 
 # Apply to entire prediction timeline
-post_strat_BWAW_anchored = post_strat_BWAW + abundance_offset
+post_strat_BAWW_anchored = post_strat_BAWW + abundance_offset
 ```
 
 **Rationale**:
@@ -149,7 +149,7 @@ post_strat_BWAW_anchored = post_strat_BWAW + abundance_offset
 - Reduces bias in absolute abundance predictions
 - Maintains uncertainty structure from post-stratification
 - Provides clear validation framework against remaining observations
-- Intuitive interpretation: "What if BWAW follows similar temporal trends but at its observed abundance level?"
+- Intuitive interpretation: "What if BAWW follows similar temporal trends but at its observed abundance level?"
 
 ## Model Outputs
 
@@ -163,8 +163,8 @@ post_strat_BWAW_anchored = post_strat_BWAW + abundance_offset
 2. **Training Trends** (`B_TrendsModel.jpeg`): Model fit to training data
 3. **Combined Plots** (`C_TrendsBoth_nofacet.jpeg`, `D_TrendsBoth_facet.jpeg`): Training and prediction periods together
 4. **New Species Predictions** (`E_TrendsNewSpecies.jpeg`): Out-of-sample species predictions
-5. **Post-stratified BWAW** (`F_BWAW_PostStratified.jpeg`): State-space post-stratified predictions for Black-and-white Warbler
-6. **Anchored vs Original** (`G_BWAW_Anchored_vs_Original.jpeg`): Comparison of anchored and original post-stratified predictions
+5. **Post-stratified BAWW** (`F_BAWW_PostStratified.jpeg`): State-space post-stratified predictions for Black-and-white Warbler
+6. **Anchored vs Original** (`G_BAWW_Anchored_vs_Original.jpeg`): Comparison of anchored and original post-stratified predictions
 
 ## Model Comparison Notes
 
@@ -198,11 +198,11 @@ post_strat_BWAW_anchored = post_strat_BWAW + abundance_offset
 ### Saved Models
 - `mvgam_prediction_mod1.rds`: Primary HGAM with ZMVN trend model
 - `mvgam_prediction_mod.rds`: Alternative HGAM with AR(1) trend model
-- `mod_strat_BAWW.rds`: State-Space HGAM for BWAW post-stratification
+- `mod_strat_BAWW.rds`: State-Space HGAM for BAWW post-stratification
 
 ### Data Outputs
-- `post_strat_BWAW_anchored.csv`: Anchored post-stratified predictions for BWAW
-- `BWAW_prediction_comparison.csv`: Comparison of anchored vs original prediction accuracy
+- `post_strat_BAWW_anchored.csv`: Anchored post-stratified predictions for BAWW
+- `BAWW_prediction_comparison.csv`: Comparison of anchored vs original prediction accuracy
 
 ### Performance Metrics
 The anchored post-stratification approach provides:
