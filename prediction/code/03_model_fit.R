@@ -484,6 +484,8 @@ ggsave("prediction/figures/forecast_all_species_penalized_splines.png", forecast
 # Look at some of the AR1 estimates
 mcmc_plot(mod_nick, variable = "ar1", regex = TRUE)
 
+
+# -------------- ILT additions here
 # Using Gaussian Process in place of penalized smooths to get better forecasts
 mod_nick_GP <- mvgam(
   data = data_train,
@@ -508,6 +510,12 @@ mod_nick_GP <- mvgam(
 summary(mod_nick_GP, include_betas = FALSE)
 saveRDS(mod_nick_GP, "prediction/output/mod_nick_GP.rds")
 
+range(data_train$time)
+range(data_test$time)
+head(data_test)
+
+# Add a vertical line where the train test splits (time = 22)
+mod_nick_GP <- readRDS("prediction/output/mod_nick_GP.rds")
 plot_predictions(
   mod_nick_GP,
   by = c("time", "series", "series"),
@@ -516,9 +524,32 @@ plot_predictions(
     series = unique
   ),
   type = "expected"
-)
-
+) +
+  geom_vline(xintercept = 22, linetype = "dotted") +
+  geom_point(data = data_train, aes(x = time, y = y), alpha = 0.2) +
+  geom_point(data = data_test, aes(x = time, y = y), alpha = 0.2) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(size = 14, face = "italic")
+  ) +
+  labs(y = "Abundance", x = "Time") +
+  theme(axis.title = element_text(size = 14))
 ggsave("prediction/figures/forecast_all_species_GP.png", plot = last_plot())
+
+plot_predictions(
+  mod_nick_GP,
+  by = c("time"),
+  newdata = datagrid(
+    time = 1:max(data_test$time),
+    series = unique
+  ),
+  type = "expected"
+) +
+  geom_vline(xintercept = 22, linetype = "dotted") +
+  labs(y = "Global latent trend", x = "Time") +
+  theme(axis.title = element_text(size = 14))
+
+ggsave("prediction/figures/forecast_latent_trend_GP.png", plot = last_plot())
 
 
 # Post-stratification: predict trends for all species and weight these based
@@ -599,17 +630,17 @@ data_test_noBAWW <- data_test %>%
   filter(series != "Mniotilta varia") %>%
   droplevels()
 
-# Set up State-Space hierarchical GAM excluding BWAW for post-stratification
+# Set up State-Space hierarchical GAM excluding BAWW for post-stratification
 set.seed(2505)
 mod_strat_BAWW <- mvgam(
-  data = data_train_noBWAW,
+  data = data_train_noBAWW,
   formula = y ~
     s(series, bs = "re"),
 
   # Hierarchical smooths of time set up as a
   # State-Space model for sampling efficiency
   trend_formula = ~
-    s(time, bs = "tp", k = 6) +
+    gp(time, k = 6) +
       s(time, trend, bs = "sz", k = 6),
   family = poisson(),
 
@@ -623,36 +654,36 @@ mod_strat_BAWW <- mvgam(
 )
 
 # Save the model
-saveRDS(mod_strat_BAWW, "prediction/output/mod_strat_BAWW.rds")
-
+saveRDS(mod_strat_BAWW, "prediction/output/mod_strat_BAWW_GP.rds")
+mod_strat_BAWW <- readRDS("prediction/output/mod_strat_BAWW_GP.rds")
 # Model summary
 summary(mod_strat_BAWW, include_betas = FALSE)
 
 # Post-stratification for Black-and-white Warbler prediction ----
-# Get species in training data (excluding BWAW)
-unique_species_noBWAW <- levels(data_train_noBWAW$series)
+# Get species in training data (excluding BAWW)
+unique_species_noBAWW <- levels(data_train_noBAWW$series)
 
 # Create species weights with Setophaga coronata weighted highest
 # Initialize all weights to 1
-species_weights_BWAW <- rep(1, length(unique_species_noBWAW))
-names(species_weights_BWAW) <- unique_species_noBWAW
+species_weights_BAWW <- rep(1, length(unique_species_noBAWW))
+names(species_weights_BAWW) <- unique_species_noBAWW
 
 # Assign higher weight to Setophaga coronata (Yellow-rumped Warbler)
 # Weight it 10x higher than other species for strong post-stratification
-species_weights_BWAW["Setophaga coronata"] <- 10
+species_weights_BAWW["Setophaga coronata"] <- 10
 
 # Assign moderate weights to other Setophaga species (if present)
-setophaga_species <- grep("Setophaga", unique_species_noBWAW, value = TRUE)
+setophaga_species <- grep("Setophaga", unique_species_noBAWW, value = TRUE)
 setophaga_species <- setophaga_species[setophaga_species != "Setophaga coronata"] # exclude the main one
-species_weights_BWAW[setophaga_species] <- 3
+species_weights_BAWW[setophaga_species] <- 3
 
-# Generate prediction grid for BWAW post-stratification
+# Generate prediction grid for BAWW post-stratification
 # Replicate each species' temporal grid based on their weights
-pred_dat_BWAW <- do.call(
+pred_dat_BAWW <- do.call(
   rbind,
-  lapply(seq_along(unique_species_noBWAW), function(sp) {
-    sp_name <- unique_species_noBWAW[sp]
-    weight <- species_weights_BWAW[sp_name]
+  lapply(seq_along(unique_species_noBAWW), function(sp) {
+    sp_name <- unique_species_noBAWW[sp]
+    weight <- species_weights_BAWW[sp_name]
 
     do.call(
       rbind,
@@ -667,30 +698,30 @@ pred_dat_BWAW <- do.call(
     )
   })
 ) %>%
-  dplyr::mutate(series = factor(series, levels = levels(data_train_noBWAW$series)))
+  dplyr::mutate(series = factor(series, levels = levels(data_train_noBAWW$series)))
 
 # Generate post-stratified predictions for Black-and-white Warbler
 # Marginalize over "time" to compute weighted average predictions
-post_strat_BWAW <- marginaleffects::avg_predictions(
+post_strat_BAWW <- marginaleffects::avg_predictions(
   mod_strat_BAWW,
-  newdata = pred_dat_BWAW,
+  newdata = pred_dat_BAWW,
   by = "time",
   type = "expected"
 )
 
-# Visualization: Post-stratified BWAW predictions ----
+# Visualization: Post-stratified BAWW predictions ----
 # Plot the post-stratified trend predictions for Black-and-white Warbler
-# Compare with actual BWAW data from the original dataset
-actual_BWAW_data <- dat %>%
+# Compare with actual BAWW data from the original dataset
+actual_BAWW_data <- dat %>%
   filter(series == "Mniotilta varia")
 
-plot_BWAW_poststrat <- ggplot(post_strat_BWAW, aes(x = time, y = estimate)) +
+plot_BAWW_poststrat <- ggplot(post_strat_BAWW, aes(x = time, y = estimate)) +
   geom_ribbon(aes(ymax = conf.high, ymin = conf.low),
     colour = NA, fill = "steelblue", alpha = 0.4
   ) +
   geom_line(colour = "steelblue", size = 1.2) +
   geom_point(
-    data = actual_BWAW_data,
+    data = actual_BAWW_data,
     aes(x = time, y = y),
     colour = "black", alpha = 0.7, size = 2
   ) +
@@ -702,36 +733,36 @@ plot_BWAW_poststrat <- ggplot(post_strat_BWAW, aes(x = time, y = estimate)) +
   labs(
     y = "Abundance (Black-and-white Warbler)",
     x = "Time",
-    title = "Post-stratified BWAW Prediction (Setophaga coronata weighted highest)",
-    subtitle = "Blue = Post-stratified prediction, Black points = Actual BWAW data, Red line = Train/Test split"
+    title = "Post-stratified BAWW Prediction (Setophaga coronata weighted highest)",
+    subtitle = "Blue = Post-stratified prediction, Black points = Actual BAWW data, Red line = Train/Test split"
   ) +
   theme(
     plot.title = element_text(size = 12),
     plot.subtitle = element_text(size = 10)
   )
 
-print(plot_BWAW_poststrat)
-ggsave("prediction/figures/F_BWAW_PostStratified.jpeg",
-  plot = plot_BWAW_poststrat, width = 12, height = 8
+print(plot_BAWW_poststrat)
+ggsave("prediction/figures/F_BAWW_PostStratified_GP.jpeg",
+  plot = plot_BAWW_poststrat, width = 12, height = 8
 )
 
 
-# Anchored Post-stratified BWAW Model ----
-# Use first year of BWAW data to calibrate the intercept of post-stratified predictions
+# Anchored Post-stratified BAWW Model ----
+# Use first year of BAWW data to calibrate the intercept of post-stratified predictions
 
-# Get the first year BWAW observation for anchoring
-first_year_BWAW <- actual_BWAW_data %>%
+# Get the first year BAWW observation for anchoring
+first_year_BAWW <- actual_BAWW_data %>%
   filter(time == 0)
 
 # Find the post-stratified prediction for the same time point
-first_year_pred <- post_strat_BWAW %>%
+first_year_pred <- post_strat_BAWW %>%
   filter(time == 1)
 
 # Calculate the offset needed to match observed abundance
-abundance_offset <- first_year_BWAW$y - first_year_pred$estimate
+abundance_offset <- first_year_BAWW$y - first_year_pred$estimate
 
 # Apply offset to all post-stratified predictions
-post_strat_BWAW_anchored <- post_strat_BWAW %>%
+post_strat_BAWW_anchored <- post_strat_BAWW %>%
   mutate(
     estimate_original = estimate,
     conf.low_original = conf.low,
@@ -742,73 +773,50 @@ post_strat_BWAW_anchored <- post_strat_BWAW %>%
   )
 
 # Visualization: Anchored vs Original Post-stratified Predictions ----
-plot_BWAW_anchored <- ggplot() +
-  # Original post-stratified prediction
-  geom_ribbon(
-    data = post_strat_BWAW,
-    aes(x = time, ymin = conf.low, ymax = conf.high),
-    fill = "lightblue", alpha = 0.3
-  ) +
-  geom_line(
-    data = post_strat_BWAW,
-    aes(x = time, y = estimate),
-    color = "steelblue", linetype = "dashed", size = 1
-  ) +
-
+plot_BAWW_anchored <- ggplot() +
   # Anchored post-stratified prediction
   geom_ribbon(
-    data = post_strat_BWAW_anchored,
+    data = post_strat_BAWW_anchored,
     aes(x = time, ymin = conf.low, ymax = conf.high),
     fill = "darkgreen", alpha = 0.4
   ) +
   geom_line(
-    data = post_strat_BWAW_anchored,
+    data = post_strat_BAWW_anchored,
     aes(x = time, y = estimate),
     color = "darkgreen", size = 1.2
   ) +
 
-  # Actual BWAW data
+  # Actual BAWW data
   geom_point(
-    data = actual_BWAW_data,
+    data = actual_BAWW_data,
     aes(x = time, y = y),
-    colour = "black", alpha = 0.8, size = 2.5
-  ) +
-
-  # First year anchor point
-  geom_point(
-    data = first_year_BWAW,
-    aes(x = time, y = y),
-    color = "red", size = 4, shape = 17
+    colour = "black", alpha = 0.2, size = 2.5
   ) +
 
   # Train/test split
-  geom_vline(
-    xintercept = max(data_train$time),
-    linetype = "dashed", colour = "red", alpha = 0.7
-  ) +
+  geom_vline(xintercept = 22, linetype = "dotted") +
   theme_classic() +
   labs(
-    y = "Abundance (Black-and-white Warbler)",
-    x = "Time",
-    title = "Anchored vs Original Post-stratified BWAW Predictions",
-    subtitle = "Green = Anchored prediction, Blue = Original prediction, Black = Actual data, Red triangle = Anchor point"
+    y = "Estimated Black-and-white Warbler abundance",
+    x = "Time"
   ) +
   theme(
-    plot.title = element_text(size = 12),
-    plot.subtitle = element_text(size = 10),
-    legend.position = "bottom"
+    axis.title = element_text(size = 12),
+    legend.position = "none"
   )
 
-print(plot_BWAW_anchored)
-ggsave("prediction/figures/G_BWAW_Anchored_vs_Original.jpeg",
-  plot = plot_BWAW_anchored, width = 14, height = 8
+print(plot_BAWW_anchored)
+
+
+ggsave("prediction/figures/G_BAWW_Anchored_GP.jpeg",
+  plot = plot_BAWW_anchored, width = 6, height = 4
 )
 
 # Comparison of prediction accuracy ----
-# Calculate residuals for both approaches (using all available BWAW data)
-predictions_comparison <- actual_BWAW_data %>%
-  left_join(post_strat_BWAW %>% select(time, estimate_original = estimate), by = "time") %>%
-  left_join(post_strat_BWAW_anchored %>% select(time, estimate_anchored = estimate), by = "time") %>%
+# Calculate residuals for both approaches (using all available BAWW data)
+predictions_comparison <- actual_BAWW_data %>%
+  left_join(post_strat_BAWW %>% select(time, estimate_original = estimate), by = "time") %>%
+  left_join(post_strat_BAWW_anchored %>% select(time, estimate_anchored = estimate), by = "time") %>%
   mutate(
     residual_original = y - estimate_original,
     residual_anchored = y - estimate_anchored,
@@ -817,5 +825,5 @@ predictions_comparison <- actual_BWAW_data %>%
   )
 
 # Save the anchored predictions
-write.csv(post_strat_BWAW_anchored, "prediction/output/post_strat_BWAW_anchored.csv", row.names = FALSE)
-write.csv(predictions_comparison, "prediction/output/BWAW_prediction_comparison.csv", row.names = FALSE)
+write.csv(post_strat_BAWW_anchored, "prediction/output/post_strat_BAWW_anchored.csv", row.names = FALSE)
+write.csv(predictions_comparison, "prediction/output/BAWW_prediction_comparison.csv", row.names = FALSE)
