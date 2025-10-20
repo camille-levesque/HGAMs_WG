@@ -715,16 +715,6 @@ ggsave("prediction/figures/F_BWAW_PostStratified.jpeg",
   plot = plot_BWAW_poststrat, width = 12, height = 8
 )
 
-# Print species weights used for transparency
-cat("Species weights used for BWAW post-stratification:\n")
-print(species_weights_BWAW)
-
-# Summary statistics comparison
-cat("\nActual BWAW abundance summary:\n")
-print(summary(actual_BWAW_data$y))
-cat("\nPost-stratified BWAW prediction summary:\n")
-print(summary(post_strat_BWAW$estimate))
-
 
 # Anchored Post-stratified BWAW Model ----
 # Use first year of BWAW data to calibrate the intercept of post-stratified predictions
@@ -733,20 +723,12 @@ print(summary(post_strat_BWAW$estimate))
 first_year_BWAW <- actual_BWAW_data %>%
   filter(time == 0)
 
-dim(first_year_BWAW)
-
-head(post_strat_BWAW)
 # Find the post-stratified prediction for the same time point
 first_year_pred <- post_strat_BWAW %>%
   filter(time == 1)
 
-cat("\nPost-stratified prediction for first year:\n")
-print(first_year_pred)
-
 # Calculate the offset needed to match observed abundance
 abundance_offset <- first_year_BWAW$y - first_year_pred$estimate
-
-cat("\nCalculated offset:", abundance_offset, "\n")
 
 # Apply offset to all post-stratified predictions
 post_strat_BWAW_anchored <- post_strat_BWAW %>%
@@ -833,16 +815,6 @@ predictions_comparison <- actual_BWAW_data %>%
     abs_residual_original = abs(residual_original),
     abs_residual_anchored = abs(residual_anchored)
   )
-
-# Summary statistics
-cat("\nPrediction accuracy comparison:\n")
-cat("Original post-stratified model:\n")
-cat("  Mean absolute error:", mean(predictions_comparison$abs_residual_original, na.rm = TRUE), "\n")
-cat("  RMSE:", sqrt(mean(predictions_comparison$residual_original^2, na.rm = TRUE)), "\n")
-
-cat("\nAnchored post-stratified model:\n")
-cat("  Mean absolute error:", mean(predictions_comparison$abs_residual_anchored, na.rm = TRUE), "\n")
-cat("  RMSE:", sqrt(mean(predictions_comparison$residual_anchored^2, na.rm = TRUE)), "\n")
 
 # Save the anchored predictions
 write.csv(post_strat_BWAW_anchored, "prediction/output/post_strat_BWAW_anchored.csv", row.names = FALSE)
