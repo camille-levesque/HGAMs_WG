@@ -1,0 +1,77 @@
+---
+title: "HGAMs_Trends"
+author: "Alejandro Sepulveda Correa" "Camille Levesque"
+format: html
+editor: visual
+---
+
+# Introduction
+
+This document is the more detailed script of the coding example of the *Trends* section of the paper "*Levelling up: How to unlock ecological data with hierarchical generalized additive models*".
+
+In this script, we plot trends and calculate derivative-based indicators on a multi-species dataset. We use HGAMs, and more specifically, the model "GS" from [Pedersen et al. (2019)](https://peerj.com/articles/6876/)'s paper.
+
+This script is an overview of the coding example presented in box 1. For more on trends in HGAMs, please refer to the article.
+
+## Data
+
+We use the North American Breeding Bird Survey dataset extracted from [BioTIME](https://biotime.st-andrews.ac.uk/selectStudy.php?study=195) (Pardieck et al., 2015). This dataset results from a long-term monitoring effort of North American bird populations dating back to 1966. Our examples use a subset of the data from Waverly, New York (44.55, -74.4833) collected between the periods of 1978 and 2007, which includes 35 bird species. In this section specifically, we use a subset of 30 species of birds (i.e., the most abundant in the dataset). We chose to use 30 species (Table 1), as we look for regime shifts and tipping point in the community, which requires to include more species.
+
+**Table 1**: Species used in this script and figures.
+
+| Common name              | Species name             |
+|--------------------------|--------------------------|
+| Red-winged blackbird     | *Agelaius phoeniceus*    |
+| Northern cardinal        | *Cardinalis cardinalis*  |
+| Chimney swift            | *Chaetura pelagica*      |
+| Northern flicker         | *Colaptes auratus*       |
+| Rock pigeon              | *Columba livia*          |
+| Eastern wood-pewee       | *Contopus virens*        |
+| American crow            | *Corvus brachyrhynchos*  |
+| Blue jay                 | *Cyanocitta cristata*    |
+| Downy woodpecker         | *Dryobates pubescens*    |
+| Gray catbird             | *Dumetella carolinensis* |
+| Common yellowthroat      | *Geothlypis trichas*     |
+| Barn swallow             | *Hirundo rustica*        |
+| Song sparrow             | *Melospiza melodia*      |
+| Brown-headed cowbird     | *Molothrus ater*         |
+| Great crested flycatcher | *Myiarchus crinitus*     |
+| House sparrow            | *Passer domesticus*      |
+| Indigo bunting           | *Passerina cyanea*       |
+| Common grackle           | *Quiscalus quiscula*     |
+| Eastern phoebe           | *Sayornis phoebe*        |
+| American Goldfinch       | *Spinus tristis*         |
+| Chipping sparrow         | *Spizella passerina*     |
+| Field sparrow            | *Spizella pusilla*       |
+| Eastern meadowlark       | *Sturnella magna*        |
+| Common starling          | *Sturnus vulgaris*       |
+| Brown trasher            | *Toxostoma rufum*        |
+| Northern house wren      | *Troglodytes aedon*      |
+| American robin           | *Turdus migratorius*     |
+| Eastern kingbird         | *Tyrannus tyrannus*      |
+| Red-eyed vireo           | *Vireo olivaceus*        |
+| Mourning dove            | *Zenaida macroura*       |
+
+## Derivative-based indicators
+
+HGAMs offer an indicator-based approach using nonparametric spatiotemporal regression models to identify periods of change in community abundance or composition (i.e., regime shifts). This method estimates three key indicators: 1) the mean rate of change across all species, 2) the mean per-capita rate of change, and 3) the standard deviation of per-capita rates of change (Pedersen et al., 2020).
+
+1.  The mean rate of change across all species
+
+    \[...\]
+
+2.  The mean per-capita rate of change
+
+    \[...\]
+
+3.  The standard deviation of per-capita rates of change
+
+    \[...\]
+
+## References
+
+Pardieck, K. L., Ziolkowski Jr., D. J., and Hudson, M. A. R. (2015). North American Breeding Bird Survey Dataset 1966 - 2014, version 2014.0. https://biotime.st-andrews.ac.uk/selectStudy.php?study=195
+
+Pedersen, E. J., Miller, D. L., Simpson, G. L., & Ross, N. (2019). Hierarchical generalized additive models in ecology: an introduction with mgcv. PeerJ, 7, e6876.
+
+Pedersen, E. J., Koen-Alonso, M., & Tunney, T. D. (2020). Detecting regime shifts in communities using estimated rates of change. ICES Journal of Marine Science, 77(4), 1546-1555.
