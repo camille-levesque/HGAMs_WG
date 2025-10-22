@@ -133,7 +133,7 @@ print(head(final_indicators_GS))
 # STEP 5: PLOT DERIVATIVE-BASED INDICATORS
 #-----------------------------------------------------------------------------
 
-# Plot 1: Mean Rate of Change Comparison
+# Plot 1: Mean Rate of Change 
 plot1_mean_rof <- ggplot(final_indicators_GS, aes(x = year)) +
   geom_ribbon(aes(ymin = mean_rate_of_change_lower_ci, ymax = mean_rate_of_change_upper_ci), alpha = 0.2) +
   geom_line(aes(y = mean_rate_of_change_median), linewidth = 1) +
@@ -144,7 +144,7 @@ plot1_mean_rof <- ggplot(final_indicators_GS, aes(x = year)) +
   ) + theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
   theme_minimal()
 
-# Plot 2: Mean Per-Capita Rate of Change Comparison
+# Plot 2: Mean Per-Capita Rate of Change 
 plot2_mean_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
   geom_ribbon(aes(ymin = mean_per_capita_rate_lower_ci, ymax = mean_per_capita_rate_upper_ci), alpha = 0.2) +
   geom_line(aes(y = mean_per_capita_rate_median), linewidth = 1) +
@@ -156,7 +156,7 @@ plot2_mean_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
 theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
   theme_minimal()
 
-# Plot 3: SD of Per-Capita Rates Comparison
+# Plot 3: SD of Per-Capita Rates 
 plot3_SD_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
   geom_ribbon(aes(ymin = sd_per_capita_rate_lower_ci, ymax = sd_per_capita_rate_upper_ci), alpha = 0.2) +
   geom_line(aes(y = sd_per_capita_rate_median), linewidth = 1) +
@@ -167,7 +167,7 @@ plot3_SD_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
   ) + theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
   theme_minimal()
 
-# Print the comparison plots
+# Print the plots
 print(plot1_mean_rof)
 print(plot2_mean_percap_rof)
 print(plot3_SD_percap_rof)
