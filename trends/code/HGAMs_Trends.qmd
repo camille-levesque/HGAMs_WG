@@ -1,7 +1,18 @@
 ---
 title: "HGAMs Trends"
-author: "Alejandro Sepulveda Correa, Camille Levesque"
-format: html
+author: 
+  - name: Alejandro Sepulveda Correa
+    affiliation: Université du Québec en Outaouais
+    email: sepa01@uqo.ca
+  - name: Camille Lévesque
+    affiliation: Université Laval
+    email: camille.levesque.7@ulaval.ca
+date: "2025-10-22"
+format:
+  html:
+    toc: true
+    number-sections: true
+    embed-resources: true
 editor: visual
 ---
 
