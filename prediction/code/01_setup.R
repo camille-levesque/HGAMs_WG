@@ -47,8 +47,6 @@ dat <- dat %>%
 
 # mvgam format requirements
 
-unique(dat$series)
-
 ## Adjust columns for mvgam requirements
 dat$y <- as.vector(dat$y)
 dat <- filter(dat, series != "Vireo olivaceus")
@@ -60,6 +58,7 @@ data_train <- dat[which(d_crop$YEAR <= 1999), ]
 data_test <- dat[which(d_crop$YEAR > 2000), ]
 
 # subsetting the data with and without a species for out-of-sample forecasting
-# Replacing red-winged black-bird with a species that has a similar ecology to the rest
-data_noMniotilta <- filter(dat, series != "Mniotilta varia")
+# Remove Setophaga pinus due to missing observations in some years
+
+data_noMniotilta <- filter(dat, series != "Mniotilta varia" & series != "Setophaga pinus")
 data_Mniotilta <- filter(dat, series == "Mniotilta varia")
