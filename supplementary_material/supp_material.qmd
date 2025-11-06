@@ -837,7 +837,7 @@ dat <- dat %>%
   select(-total_abun)
 ```
 
-#### *mvgam* format requirements
+#### `mvgam` format requirements
 
 Prepare and format the dataset for HGAM fitting and forecasting: adjust columns to meet mvgam requirements, define training/testing subsets, and create datasets with and without specific species for out-of-sample forecasts.
 
