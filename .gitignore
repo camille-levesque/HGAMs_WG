@@ -5,4 +5,6 @@
 .DS_Store
 variance/outputs/mvgam_variance.rds
 variance/figures/~$species_associations_manuallyeditted.pptx
-prediction/output
+prediction/output/
+prediction/figures/G_BAWW_Anchored_GP_all_years_gam_HGAM.jpeg
+prediction/figures/F_BAWW_PostStratified_GP.jpeg

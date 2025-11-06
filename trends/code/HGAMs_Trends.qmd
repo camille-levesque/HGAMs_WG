@@ -91,7 +91,7 @@ Pedersen, E. J., Koen-Alonso, M., & Tunney, T. D. (2020). Detecting regime shift
 
 Here, we install and load the packages required for this coding example.
 
-```{r}
+```{r,message=FALSE,warning=FALSE,results='hide'}
 # install.packages(c("mgcv", "dplyr", "ggplot2", "tidyr", "mvtnorm", "here", "gratia", "gridExtra"))
 
 library(mgcv)    # For fitting Generalized Additive Models (GAMs) and Hierarchical GAMs
@@ -112,8 +112,8 @@ Here, we import and process the dataset that has already been cleaned. The clean
 We then process the data further by selecting the 30 most abundant species for the analyses.
 
 ```{r}
-
-setwd("/Users/camillelevesque/Desktop/Maîtrise/GitHub/HGAMs_WG")
+# set working directory to the R Project folder (i.e. HGAMS_WG)
+setwd(here::here())
 
 # Loading the dataset
 data_195 <- read.csv("data/clean/data_195.csv") # This is the cleaned data 
@@ -245,38 +245,49 @@ Here, we plot the three derivative-based indicators (mean rate of change, mean p
 
 ```{r}
 # Plot 1: Mean Rate of Change 
-plot1_mean_rof <- ggplot(final_indicators_GS, aes(x = year)) +
-  geom_ribbon(aes(ymin = mean_rate_of_change_lower_ci, ymax = mean_rate_of_change_upper_ci), alpha = 0.2) +
+plot1_mean_rof <- ggplot(final_indicators_GS, 
+                         aes(x = year)) +
+  geom_ribbon(aes(ymin = mean_rate_of_change_lower_ci, 
+                  ymax = mean_rate_of_change_upper_ci), 
+              alpha = 0.8, fill = "#8fbcbb") +
   geom_line(aes(y = mean_rate_of_change_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
-    title = "Indicator 1",
-    y = "Mean rate of change (Abundance / Year)", x = "Year",
-  ) + theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
-  theme_minimal()
+    title = "",
+    y = "Mean rate of change\n(Abundance / Year)", x = "Year",
+  ) + 
+  ggpubr::theme_pubr() +
+  theme(panel.grid.major = element_line(linewidth = .3))
 
 # Plot 2: Mean Per-Capita Rate of Change 
-plot2_mean_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
-  geom_ribbon(aes(ymin = mean_per_capita_rate_lower_ci, ymax = mean_per_capita_rate_upper_ci), alpha = 0.2) +
+plot2_mean_percap_rof <- ggplot(final_indicators_GS, 
+                                aes(x = year)) +
+  geom_ribbon(aes(ymin = mean_per_capita_rate_lower_ci, 
+                  ymax = mean_per_capita_rate_upper_ci), 
+              alpha = 0.8, fill = "#88c0d0") +
   geom_line(aes(y = mean_per_capita_rate_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
-    title = "Indicator 2",
-    y = "Mean per-capita rate of change", x = "Year",
-  ) +
-theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
-  theme_minimal()
+    title = "",
+    y = "Mean per-capita\nrate of change", x = "Year",
+  ) + 
+  ggpubr::theme_pubr() +
+  theme(panel.grid.major = element_line(linewidth = .3))
 
 # Plot 3: SD of Per-Capita Rates 
-plot3_SD_percap_rof <- ggplot(final_indicators_GS, aes(x = year)) +
-  geom_ribbon(aes(ymin = sd_per_capita_rate_lower_ci, ymax = sd_per_capita_rate_upper_ci), alpha = 0.2) +
+plot3_SD_percap_rof <- ggplot(final_indicators_GS, 
+                              aes(x = year)) +
+  geom_ribbon(aes(ymin = sd_per_capita_rate_lower_ci, 
+                  ymax = sd_per_capita_rate_upper_ci), 
+              alpha = 0.6, fill = "#5e81ac") +
   geom_line(aes(y = sd_per_capita_rate_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
-    title = "Indicator 3",
-    y = "SD of per-capita rates of change", x = "Year",
-  ) + theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
-  theme_minimal()
+    title = "",
+    y = "SD of per-capita\nrates of change", x = "Year",
+  ) + 
+  ggpubr::theme_pubr()+
+  theme(panel.grid.major = element_line(linewidth = .3))
 
 # Print the plots
 print(plot1_mean_rof)
@@ -289,8 +300,10 @@ print(plot3_SD_percap_rof)
 Here, we create the figure that displays the three derivative-based indicators. This figure corresponds to **Box 1** in the paper (i.e., **Figure 2**).
 
 ```{r}
-figure_2 <- grid.arrange(plot1_mean_rof, plot2_mean_percap_rof, plot3_SD_percap_rof, ncol = 3)
-print(figure_2)
+library(patchwork)
+plot1_mean_rof + plot2_mean_percap_rof + plot3_SD_percap_rof + plot_annotation(tag_levels = "a")
+ggsave(paste0(here::here(), "/trends/figures/trends_indicators_plots.png"),
+       width = 10.3, height = 3.24)
 ```
 
 # Additional material
