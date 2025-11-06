@@ -19,12 +19,12 @@ author:
   - name: Pedro Henrique Pereira Braga
     affiliation: McGill University
     email: pedro.pereirabraga@mcgill.ca
-  - name: Aliénor Stahl
-    affiliation: Université du Québec à Trois-Rivières
-    email: alienor.stahl@uqtr.ca
   - name: Alejandro Sepúlveda-Correa
     affiliation: Université du Québec en Outaouais
     email: sepa01@uqo.ca
+  - name: Aliénor Stahl
+    affiliation: Université du Québec à Trois-Rivières
+    email: alienor.stahl@uqtr.ca
   - name: Lukas Van Riel
     affiliation: Université de Montréal
     email: lukas.van.riel@umontreal.ca
