@@ -115,14 +115,6 @@ tidyverse,       # For the full suite of tidy tools (read, wrangle, plot) in one
 cmdstanr)        # For fitting Stan models via CmdStan, backend for mvgam
 ```
 
-### Working directory
-
-Set working directory to the R Project folder (i.e. HGAMS_WG)
-
-```{r}
-setwd(here::here())
-```
-
 ### Import and clean the data
 
 We import the raw BBS data downloaded from BioTIME.
