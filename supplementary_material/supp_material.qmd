@@ -66,7 +66,7 @@ Table S1 presents the species used in the different coding examples (Boxes), whi
 **Table S1.** Bird species and their inclusion (indicated by tick marks) in the coding examples presented in Boxes 1, 2, and 3. Box 1 uses the broader dataset (*data_195*), which includes randomly selected species from the North American Breeding Bird Survey as curated in BioTIME (Pardieck et al., 2015; Dornelas et al., 2018). Boxes 2 and 3 use the spatially cropped dataset (*d_crop*), restricted to observations from Waverly, New York (latitude 44.55, longitude −74.4833) collected between 1978 and 2007, and feature a subset of the most common species.Altogether, 36 bird species are represented across the three boxes.
 
 |                              |                          |       | **Box** |       |
-|---------------|---------------|:-------------:|:-------------:|:-------------:|
+|------------------------------|--------------------------|:-----:|:-------:|:-----:|
 | Common name                  | Species name             | **1** |  **2**  | **3** |
 | Red-winged blackbird         | *Agelaius phoeniceus*    |   x   |    x    |   x   |
 | Northern cardinal            | *Cardinalis cardinalis*  |   x   |         |       |
@@ -156,7 +156,9 @@ df_years$max_year |> table()
 sp_to_keep = df_years |> filter(min_year == 1978, max_year == 2007)
 
 # Cut to species that have data between 1978 and 2007
-data_195 = df |> filter(valid_name %in% sp_to_keep$valid_name)
+df = df |> filter(valid_name %in% sp_to_keep$valid_name)
+
+data_195 <- df
 ```
 
 ## Step 2: Structure the data for analysis
@@ -771,7 +773,6 @@ dat$series |> unique() # List all unique series included in the dataset
 
 #### Species associations
 
-
 ```{r corr-clean}
 library(here)
 #sp_corr = mvgam::lv_correlations(m1) # Extract latent variable (species) correlation matrix
@@ -909,7 +910,7 @@ A State-Space hierarchical GAM is fitted using a Poisson family, AR(1) temporal 
 # )
 
 # Read the model
-mod_forecast_ps <- readRDS(here::here("prediction", "output", "mod_nick.rds"))
+mod_forecast_ps <- readRDS(here::here("prediction", "output", "mod_forecast_ps.rds"))
 ```
 
 ##### Model summary
@@ -921,6 +922,7 @@ summary(mod_forecast_ps, include_betas = FALSE)
 ##### Plots
 
 ```{r}
+
 # Plot random effects
 mvgam::plot_mvgam_randomeffects(mod_forecast_ps)
 
@@ -977,7 +979,7 @@ This model replaces penalized spline smooths with Gaussian Process terms to more
 # )
 
 # Read the model
-mod_forecast_GP <- readRDS(here::here("prediction", "output", "mod_nick_GP.rds"))
+mod_forecast_GP <- readRDS(here::here("prediction", "output", "mod_forecast_GP.rds"))
 ```
 
 ##### Model summary
@@ -989,66 +991,66 @@ summary(mod_forecast_GP, include_betas = FALSE)
 ##### Predict
 
 ```{r}
-# # Build prediction grid
-# pred_data <- data.frame(
-#   time = rep(1:max(data_test$time), each = length(unique(data_train$series))),
-#   series = rep(unique(data_train$series), times = max(data_test$time))
-# )
-# 
-# predictions <- predictions(
-#   mod_forecast_GP,
-#   newdata = pred_data,
-#   by = c("time", "series", "series"),
-#   type = "expected"
-# )
-# 
-# # Mark which points are forecasts & Add a vertical line where the train test splits (time = 22)
-# predictions$forecast <- ifelse(predictions$time > 22, "Forecast", "Fitted")
+# Build prediction grid
+pred_data <- data.frame(
+  time = rep(1:max(data_test$time), each = length(unique(data_train$series))),
+  series = rep(unique(data_train$series), times = max(data_test$time))
+)
+
+predictions <- predictions(
+  mod_forecast_GP,
+  newdata = pred_data,
+  by = c("time", "series", "series"),
+  type = "expected"
+)
+
+# Mark which points are forecasts & Add a vertical line where the train test splits (time = 22)
+predictions$forecast <- ifelse(predictions$time > 22, "Forecast", "Fitted")
 ```
 
 ##### Plot species-level forecasts
 
 ```{r}
-# ggplot(predictions, aes(x = time, y = estimate)) +
-#   geom_ribbon(
-#     aes(ymin = conf.low, ymax = conf.high, fill = series),
-#     alpha = 0.2
-#   ) +
-#   geom_line(
-#     data = subset(predictions, forecast == "Fitted"),
-#     aes(color = series), linewidth = 1
-#   ) +
-#   geom_line(
-#     data = subset(predictions, forecast == "Forecast"),
-#     aes(color = series), linewidth = 1, linetype = "dashed"
-#   ) +
-#   geom_vline(xintercept = 22, linetype = "dotted") +
-#   geom_point(data = data_train, aes(x = time, y = y), alpha = 0.2) +
-#   geom_point(data = data_test, aes(x = time, y = y), alpha = 0.2) +
-#   facet_wrap(~series, scales = "free_y") +
-#   theme(
-#     legend.position = "none",
-#     strip.text = element_text(size = 14, face = "italic")
-#   ) +
-#   labs(y = "Abundance", x = "Time") +
-#   theme(axis.title = element_text(size = 14))
+ggplot(predictions, aes(x = time, y = estimate)) +
+  geom_ribbon(
+    aes(ymin = conf.low, ymax = conf.high, fill = series),
+    alpha = 0.2
+  ) +
+  geom_line(
+    data = subset(predictions, forecast == "Fitted"),
+    aes(color = series), linewidth = 1
+  ) +
+  geom_line(
+    data = subset(predictions, forecast == "Forecast"),
+    aes(color = series), linewidth = 1, linetype = "dashed"
+  ) +
+  geom_vline(xintercept = 22, linetype = "dotted") +
+  geom_point(data = data_train, aes(x = time, y = y), alpha = 0.2) +
+  geom_point(data = data_test, aes(x = time, y = y), alpha = 0.2) +
+  facet_wrap(~series, scales = "free_y") +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(size = 14, face = "italic")
+  ) +
+  labs(y = "Abundance", x = "Time") +
+  theme(axis.title = element_text(size = 14))
 ```
 
 ##### Plot latent/global trend
 
 ```{r}
-# plot_predictions(
-#   mod_nick_GP,
-#   by = c("time"),
-#   newdata = datagrid(
-#     time = 1:max(data_test$time),
-#     series = unique
-#   ),
-#   type = "expected"
-# ) +
-#   geom_vline(xintercept = 22, linetype = "dotted") +
-#   labs(y = "Global latent trend", x = "Time") +
-#   theme(axis.title = element_text(size = 14))
+plot_predictions(
+  mod_nick_GP,
+  by = c("time"),
+  newdata = datagrid(
+    time = 1:max(data_test$time),
+    series = unique
+  ),
+  type = "expected"
+) +
+  geom_vline(xintercept = 22, linetype = "dotted") +
+  labs(y = "Global latent trend", x = "Time") +
+  theme(axis.title = element_text(size = 14))
 ```
 
 ### Gaussian process - predicting new species
@@ -1060,37 +1062,37 @@ summary(mod_forecast_GP, include_betas = FALSE)
 In this section, we prepare a training dataset that excludes *Mniotilta varia* (Black-and-white Warbler) to perform post-stratification. We examine missing observations across species and time, verify data completeness, and then load the fitted state-space HGAM (Gaussian Process–based) trained on the reduced dataset.
 
 ```{r}
-# # Black-and-white Warbler Post-stratification Model ----
-# # Create training data excluding Mniotilta varia (Black-and-white Warbler)
-# data_train_noBAWW <- data_noMniotilta %>%
-#   droplevels()
-# 
-# # Set up State-Space hierarchical GAM excluding BAWW for post-stratification
-# set.seed(2505)
-# data_train_noBAWW %>%
-#   group_by(series) %>%
-#   summarise(
-#     n_obs = n(),
-#     expected_obs = length(unique(data_train_noBAWW$time)),
-#     missing_obs = expected_obs - n_obs
-#   ) %>%
-#   filter(missing_obs > 0)
-# unique(data_train_noBAWW$series)
-# 
-# 
-# colSums(is.na(data_train_noBAWW))
+# Black-and-white Warbler Post-stratification Model ----
+# Create training data excluding Mniotilta varia (Black-and-white Warbler)
+data_train_noBAWW <- data_noMniotilta %>%
+  droplevels()
+
+# Set up State-Space hierarchical GAM excluding BAWW for post-stratification
+set.seed(2505)
+data_train_noBAWW %>%
+  group_by(series) %>%
+  summarise(
+    n_obs = n(),
+    expected_obs = length(unique(data_train_noBAWW$time)),
+    missing_obs = expected_obs - n_obs
+  ) %>%
+  filter(missing_obs > 0)
+unique(data_train_noBAWW$series)
+
+
+colSums(is.na(data_train_noBAWW))
 
 # mod_strat_BAWW <- mvgam(
 #   data = data_train_noBAWW,
 #   formula = y ~
 #     s(series, bs = "re"),
-# 
+#
 #   # Hierarchical smooths of time set up as a
 #   # State-Space model for sampling efficiency
 #   trend_formula = ~
 #     gp(time, k = 3, gr = FALSE),
 #   family = poisson(),
-# 
+#
 #   # AR1 for "residual" autocorrelation
 #   trend_model = AR(p = 1),
 #   noncentred = TRUE,
@@ -1101,59 +1103,59 @@ In this section, we prepare a training dataset that excludes *Mniotilta varia* (
 # )
 
 # Read the model
-# mod_strat_BAWW <- readRDS(here::here("prediction", "output", "mod_strat_BAWW.rds"))
+mod_strat_BAWW <- readRDS(here::here("prediction", "output", "mod_strat_BAWW_GP_all_years"))
 ```
 
 ##### Construct weighted prediction data for post-stratification
 
 ```{r}
-# # Post-stratification for Black-and-white Warbler prediction ---
-# # predict trends for all species and weight these based
-# # on their "distance" to the new species
-# unique_species_noBAWW <- levels(data_train_noBAWW$series)
-# 
-# # Add some weights; here a higher value means that species is "closer" to the
-# # un-modelled target species. This could for example be the inverse of a phylogenetic
-# # or functional distance metric
-# 
-# # Initialize all weights to 1
-# species_weights_BAWW <- rep(1, length(unique_species_noBAWW))
-# names(species_weights_BAWW) <- unique_species_noBAWW
-# 
-# # Assign higher weight to warblers species
-# # Weight it 10x higher than other species for strong post-stratification
-# 
-# setophaga_species <- grep("Setophaga", unique_species_noBAWW, value = TRUE)
-# species_weights_BAWW[setophaga_species] <- 10
-# species_weights_BAWW["Seiurus aurocapilla"] <- 10
-# 
-# 
-# # Generate the prediction grid; here we replicate each species' temporal grid
-# # a number of times, with the number of replications determined by the weight
-# # vector above
-# pred_dat_BAWW <- do.call(
-#   rbind,
-#   lapply(seq_along(unique_species_noBAWW), function(sp) {
-#     sp_name <- unique_species_noBAWW[sp]
-#     weight <- species_weights_BAWW[sp_name]
-# 
-#     do.call(
-#       rbind,
-#       replicate(
-#         weight,
-#         data.frame(
-#           time =
-#             1:max(data_train_noBAWW$time + 1), # time is indexed starting at 0
-#           series = sp_name
-#         ),
-#         simplify = FALSE
-#       )
-#     )
-#   })
-# ) %>%
-#   dplyr::mutate(
-#     series = factor(series, levels = levels(data_train_noBAWW$series))
-#   )
+# Post-stratification for Black-and-white Warbler prediction ---
+# predict trends for all species and weight these based
+# on their "distance" to the new species
+unique_species_noBAWW <- levels(data_train_noBAWW$series)
+
+# Add some weights; here a higher value means that species is "closer" to the
+# un-modelled target species. This could for example be the inverse of a phylogenetic
+# or functional distance metric
+
+# Initialize all weights to 1
+species_weights_BAWW <- rep(1, length(unique_species_noBAWW))
+names(species_weights_BAWW) <- unique_species_noBAWW
+
+# Assign higher weight to warblers species
+# Weight it 10x higher than other species for strong post-stratification
+
+setophaga_species <- grep("Setophaga", unique_species_noBAWW, value = TRUE)
+species_weights_BAWW[setophaga_species] <- 10
+species_weights_BAWW["Seiurus aurocapilla"] <- 10
+
+
+# Generate the prediction grid; here we replicate each species' temporal grid
+# a number of times, with the number of replications determined by the weight
+# vector above
+pred_dat_BAWW <- do.call(
+  rbind,
+  lapply(seq_along(unique_species_noBAWW), function(sp) {
+    sp_name <- unique_species_noBAWW[sp]
+    weight <- species_weights_BAWW[sp_name]
+
+    do.call(
+      rbind,
+      replicate(
+        weight,
+        data.frame(
+          time =
+            1:max(data_train_noBAWW$time + 1), # time is indexed starting at 0
+          series = sp_name
+        ),
+        simplify = FALSE
+      )
+    )
+  })
+) %>%
+  dplyr::mutate(
+    series = factor(series, levels = levels(data_train_noBAWW$series))
+  )
 ```
 
 ##### Get post-stratified predictions
@@ -1161,12 +1163,12 @@ In this section, we prepare a training dataset that excludes *Mniotilta varia* (
 ```{r}
 # Generate post-stratified predictions for Black-and-white Warbler
 # Marginalize over "time" to compute weighted average predictions
-# post_strat_BAWW <- marginaleffects::avg_predictions(
-#   mod_strat_BAWW,
-#   newdata = pred_dat_BAWW,
-#   by = "time",
-#   type = "expected"
-# )
+post_strat_BAWW <- marginaleffects::avg_predictions(
+  mod_strat_BAWW,
+  newdata = pred_dat_BAWW,
+  by = "time",
+  type = "expected"
+)
 ```
 
 ##### Visualize post-stratified predictions for BAWW
@@ -1177,30 +1179,30 @@ We compare the post-stratified predictions for *Mniotilta varia* (Black-and-whit
 # Visualization: Post-stratified BAWW predictions ----
 # Plot the post-stratified trend predictions for Black-and-white Warbler
 # Compare with actual BAWW data from the original dataset
-# actual_BAWW_data <- dat %>%
-#   filter(series == "Mniotilta varia")
+actual_BAWW_data <- dat %>%
+  filter(series == "Mniotilta varia")
 
-# plot_BAWW_poststrat <- ggplot(post_strat_BAWW, aes(x = time, y = estimate)) +
-#   geom_ribbon(aes(ymax = conf.high, ymin = conf.low),
-#     colour = NA, fill = "steelblue", alpha = 0.4
-#   ) +
-#   geom_line(colour = "steelblue", linewidth = 1.2) +
-#   geom_point(
-#     data = actual_BAWW_data,
-#     aes(x = time, y = y),
-#     colour = "black", alpha = 0.7, size = 2
-#   ) +
-#   theme_classic() +
-#   labs(
-#     y = "Abundance (Black-and-white Warbler)",
-#     x = "Time"
-#   ) +
-#   theme(
-#     plot.title = element_text(size = 12),
-#     plot.subtitle = element_text(size = 10)
-#   )
-# 
-# print(plot_BAWW_poststrat)
+plot_BAWW_poststrat <- ggplot(post_strat_BAWW, aes(x = time, y = estimate)) +
+  geom_ribbon(aes(ymax = conf.high, ymin = conf.low),
+    colour = NA, fill = "steelblue", alpha = 0.4
+  ) +
+  geom_line(colour = "steelblue", linewidth = 1.2) +
+  geom_point(
+    data = actual_BAWW_data,
+    aes(x = time, y = y),
+    colour = "black", alpha = 0.7, size = 2
+  ) +
+  theme_classic() +
+  labs(
+    y = "Abundance (Black-and-white Warbler)",
+    x = "Time"
+  ) +
+  theme(
+    plot.title = element_text(size = 12),
+    plot.subtitle = element_text(size = 10)
+  )
+
+print(plot_BAWW_poststrat)
 ```
 
 ##### Anchor and evaluate Post-stratified predictions for BAWW model
@@ -1208,49 +1210,49 @@ We compare the post-stratified predictions for *Mniotilta varia* (Black-and-whit
 To align the post-stratified forecasts with observed data, we anchor the predictions by calibrating the intercept using the first year of *Mniotilta varia* (Black-and-white Warbler) observations. The offset ensures that predicted abundances match the empirical baseline. We then assess model performance using MAE and RMSE, and compare prediction agreement with a standard GAM by examining correlation and directional trend consistency between the two models.
 
 ```{r}
-# # Anchored Post-stratified BAWW Model ----
-# # Use first year of BAWW data to calibrate the intercept of post-stratified predictions
-# 
-# # Get the first year BAWW observation for anchoring
-# first_year_BAWW <- actual_BAWW_data %>%
-#   filter(time == 0)
-# 
-# # Find the post-stratified prediction for the same time point
-# first_year_pred <- post_strat_BAWW %>%
-#   filter(time == 1)
-# 
-# # Calculate the offset needed to match observed abundance
-# abundance_offset <- first_year_BAWW$y - first_year_pred$estimate
-# 
-# # Apply offset to all post-stratified predictions
-# post_strat_BAWW_anchored <- post_strat_BAWW %>%
-#   mutate(
-#     estimate_original = estimate,
-#     conf.low_original = conf.low,
-#     conf.high_original = conf.high,
-#     estimate = estimate + abundance_offset,
-#     conf.low = conf.low + abundance_offset,
-#     conf.high = conf.high + abundance_offset
-#   )
-# 
-# mvgam_pred_mean <- post_strat_BAWW_anchored$estimate
-# mae_mvgam <- mean(abs(data_Mniotilta$y - mvgam_pred_mean))
-# rmse_mvgam <- sqrt(mean((data_Mniotilta$y - mvgam_pred_mean)^2))
-# 
-# 
-# # GAM for BAWW
-# BAWW_gam <- gam(y ~ s(time), data = data_Mniotilta)
-# 
-# 
-# # Calculate correlation between predictions
-# cor_predictions <- cor(mvgam_pred_mean, gam_pred)
-# cor_predictions
-# 
-# # Direction of trend agreement
-# gam_trend_direction <- sign(diff(gam_pred))
-# mvgam_trend_direction <- sign(diff(mvgam_pred_mean))
-# trend_agreement <- mean(gam_trend_direction == mvgam_trend_direction)
-# trend_agreement
+# Anchored Post-stratified BAWW Model ----
+# Use first year of BAWW data to calibrate the intercept of post-stratified predictions
+
+# Get the first year BAWW observation for anchoring
+first_year_BAWW <- actual_BAWW_data %>%
+  filter(time == 0)
+
+# Find the post-stratified prediction for the same time point
+first_year_pred <- post_strat_BAWW %>%
+  filter(time == 1)
+
+# Calculate the offset needed to match observed abundance
+abundance_offset <- first_year_BAWW$y - first_year_pred$estimate
+
+# Apply offset to all post-stratified predictions
+post_strat_BAWW_anchored <- post_strat_BAWW %>%
+  mutate(
+    estimate_original = estimate,
+    conf.low_original = conf.low,
+    conf.high_original = conf.high,
+    estimate = estimate + abundance_offset,
+    conf.low = conf.low + abundance_offset,
+    conf.high = conf.high + abundance_offset
+  )
+
+mvgam_pred_mean <- post_strat_BAWW_anchored$estimate
+mae_mvgam <- mean(abs(data_Mniotilta$y - mvgam_pred_mean))
+rmse_mvgam <- sqrt(mean((data_Mniotilta$y - mvgam_pred_mean)^2))
+
+
+# GAM for BAWW
+BAWW_gam <- gam(y ~ s(time), data = data_Mniotilta)
+
+
+# Calculate correlation between predictions
+cor_predictions <- cor(mvgam_pred_mean, gam_pred)
+cor_predictions
+
+# Direction of trend agreement
+gam_trend_direction <- sign(diff(gam_pred))
+mvgam_trend_direction <- sign(diff(mvgam_pred_mean))
+trend_agreement <- mean(gam_trend_direction == mvgam_trend_direction)
+trend_agreement
 ```
 
 ##### Visualize anchored versus original post-stratified predictions
@@ -1259,35 +1261,35 @@ This plot compares the anchored post-stratified predictions for *Mniotilta varia
 
 ```{r}
 # Visualization: Anchored vs Original Post-stratified Predictions ----
-# plot_BAWW_anchored <- ggplot() +
-#   # Anchored post-stratified prediction
-#   geom_ribbon(
-#     data = post_strat_BAWW_anchored,
-#     aes(x = time, ymin = conf.low, ymax = conf.high),
-#     fill = "darkgreen", alpha = 0.4
-#   ) +
-#   geom_line(
-#     data = post_strat_BAWW_anchored,
-#     aes(x = time, y = estimate),
-#     color = "darkgreen", size = 1.2, linetype = "dashed"
-#   ) +
-# 
-#   # Actual BAWW data
-#   geom_point(
-#     data = actual_BAWW_data,
-#     aes(x = time, y = y),
-#     colour = "black", alpha = 0.2, size = 2.5
-#   ) +
-#   theme_classic() +
-#   labs(
-#     y =
-#       expression(paste("Predicted ", italic("Mniotilta varia"), " abundance")),
-#     x = "Time"
-#   ) +
-#   theme(
-#     axis.title = element_text(size = 12),
-#     legend.position = "none"
-#   )
+plot_BAWW_anchored <- ggplot() +
+  # Anchored post-stratified prediction
+  geom_ribbon(
+    data = post_strat_BAWW_anchored,
+    aes(x = time, ymin = conf.low, ymax = conf.high),
+    fill = "darkgreen", alpha = 0.4
+  ) +
+  geom_line(
+    data = post_strat_BAWW_anchored,
+    aes(x = time, y = estimate),
+    color = "darkgreen", size = 1.2, linetype = "dashed"
+  ) +
+
+  # Actual BAWW data
+  geom_point(
+    data = actual_BAWW_data,
+    aes(x = time, y = y),
+    colour = "black", alpha = 0.2, size = 2.5
+  ) +
+  theme_classic() +
+  labs(
+    y =
+      expression(paste("Predicted ", italic("Mniotilta varia"), " abundance")),
+    x = "Time"
+  ) +
+  theme(
+    axis.title = element_text(size = 12),
+    legend.position = "none"
+  )
 ```
 
 # References
