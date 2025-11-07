@@ -1,6 +1,6 @@
 ---
 title: " Levelling up: How to unlock ecological and evolutionary data with hierarchical - Supplementary Material "
-author: 
+author:
   - name: Camille Lévesque
     affiliation: Université Laval
     email: camille.levesque.7@ulaval.ca
@@ -66,7 +66,7 @@ Table S1 presents the species used in the different coding examples (Boxes), whi
 **Table S1.** Bird species and their inclusion (indicated by tick marks) in the coding examples presented in Boxes 1, 2, and 3. Box 1 uses the broader dataset (*data_195*), which includes randomly selected species from the North American Breeding Bird Survey as curated in BioTIME (Pardieck et al., 2015; Dornelas et al., 2018). Boxes 2 and 3 use the spatially cropped dataset (*d_crop*), restricted to observations from Waverly, New York (latitude 44.55, longitude −74.4833) collected between 1978 and 2007, and feature a subset of the most common species.Altogether, 36 bird species are represented across the three boxes.
 
 |                              |                          |       | **Box** |       |
-|------------------------------|--------------------------|:-----:|:-------:|:-----:|
+|---------------|---------------|:-------------:|:-------------:|:-------------:|
 | Common name                  | Species name             | **1** |  **2**  | **3** |
 | Red-winged blackbird         | *Agelaius phoeniceus*    |   x   |    x    |   x   |
 | Northern cardinal            | *Cardinalis cardinalis*  |   x   |         |       |
@@ -117,7 +117,7 @@ Here, we install and load the packages required for the coding examples.
 # install.packages("pacman")
 
 pacman::p_load(mgcv, # For fitting Generalized Additive Models (GAMs) and Hierarchical GAMs
-dplyr,           # For data manipulation 
+dplyr,           # For data manipulation
 ggplot2,         # For data visualization
 tidyr,           # For reshaping and tidying data
 mvtnorm,         # For working with multivariate normal and t-distributions
@@ -196,20 +196,20 @@ Here, we fit the “GS” model described in Pedersen et al. (2019). Since the r
 # MODEL: The 'GS' Model (Global smooth + species-specific deviations)
 gam_model_GS <- gam(
   # Global relationship
-  abundance ~ s(year, bs = "tp") + 
-    
+  abundance ~ s(year, bs = "tp") +
+
   # Species-specific smoother: a factor-smoother interaction of year and species
-  s(year, by = species, bs = "fs") + 
-    
+  s(year, by = species, bs = "fs") +
+
   # Species as random effects (gives an intercept per species)
-  s(species, bs="re"), 
-  
+  s(species, bs="re"),
+
   # Data
   data = community_ts_subset,
-  
+
   # Distribution family: Poisson for count data
-  family = poisson(), 
-  
+  family = poisson(),
+
   # Estimating smoothing parameters using restricted maximum likelihood (REML)
   method = "REML"
 )
@@ -310,48 +310,48 @@ HGAMs offer an indicator-based approach using nonparametric spatiotemporal regre
 Here, we plot the three derivative-based indicators (mean rate of change, mean per capita rate, and the standard deviation of per capita rates) across years.
 
 ```{r}
-# Plot 1: Mean Rate of Change 
-plot1_mean_rof <- ggplot(final_indicators_GS, 
+# Plot 1: Mean Rate of Change
+plot1_mean_rof <- ggplot(final_indicators_GS,
                          aes(x = year)) +
-  geom_ribbon(aes(ymin = mean_rate_of_change_lower_ci, 
-                  ymax = mean_rate_of_change_upper_ci), 
+  geom_ribbon(aes(ymin = mean_rate_of_change_lower_ci,
+                  ymax = mean_rate_of_change_upper_ci),
               alpha = 0.8, fill = "#8fbcbb") +
   geom_line(aes(y = mean_rate_of_change_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
     title = "",
     y = "Mean rate of change\n(Abundance / Year)", x = "Year",
-  ) + 
+  ) +
   ggpubr::theme_pubr() +
   theme(panel.grid.major = element_line(linewidth = .3))
 
-# Plot 2: Mean Per-Capita Rate of Change 
-plot2_mean_percap_rof <- ggplot(final_indicators_GS, 
+# Plot 2: Mean Per-Capita Rate of Change
+plot2_mean_percap_rof <- ggplot(final_indicators_GS,
                                 aes(x = year)) +
-  geom_ribbon(aes(ymin = mean_per_capita_rate_lower_ci, 
-                  ymax = mean_per_capita_rate_upper_ci), 
+  geom_ribbon(aes(ymin = mean_per_capita_rate_lower_ci,
+                  ymax = mean_per_capita_rate_upper_ci),
               alpha = 0.8, fill = "#88c0d0") +
   geom_line(aes(y = mean_per_capita_rate_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
     title = "",
     y = "Mean per-capita\nrate of change", x = "Year",
-  ) + 
+  ) +
   ggpubr::theme_pubr() +
   theme(panel.grid.major = element_line(linewidth = .3))
 
-# Plot 3: SD of Per-Capita Rates 
-plot3_SD_percap_rof <- ggplot(final_indicators_GS, 
+# Plot 3: SD of Per-Capita Rates
+plot3_SD_percap_rof <- ggplot(final_indicators_GS,
                               aes(x = year)) +
-  geom_ribbon(aes(ymin = sd_per_capita_rate_lower_ci, 
-                  ymax = sd_per_capita_rate_upper_ci), 
+  geom_ribbon(aes(ymin = sd_per_capita_rate_lower_ci,
+                  ymax = sd_per_capita_rate_upper_ci),
               alpha = 0.6, fill = "#5e81ac") +
   geom_line(aes(y = sd_per_capita_rate_median), linewidth = 1) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
     title = "",
     y = "SD of per-capita\nrates of change", x = "Year",
-  ) + 
+  ) +
   ggpubr::theme_pubr()+
   theme(panel.grid.major = element_line(linewidth = .3))
 
@@ -620,7 +620,7 @@ table(sites)
 # crop to a site
 d_crop = df[sites %in% "-74.4833_44.55",] # We keep sites in Waverly, New York
 
-## crop to birds 
+## crop to birds
 species = table(d_crop$valid_name)
 species = species[which(species == 30)]
 ex = names(species)
@@ -641,8 +641,8 @@ dls = d_crop |>
 mls = lapply(dls, function(x){lm(ABUNDANCE ~ YEAR, data = x)})
 
 # extract slopes
-coefs = mls |> lapply(coef) |> 
-  bind_rows() |> 
+coefs = mls |> lapply(coef) |>
+  bind_rows() |>
   mutate("species" = unique(d_crop$valid_name))
 
 # plot to see the slopes
@@ -688,11 +688,11 @@ data_train = dat[which(d_crop$YEAR <= 1999),]
 data_test = dat[which(d_crop$YEAR > 2000),]
 
 ggplot(data = data_train) +
-  geom_smooth(aes(x = time, y = y, 
+  geom_smooth(aes(x = time, y = y,
                   col = series, fill = series),
               alpha = .1) +
   colorspace::scale_color_discrete_qualitative() +
-  colorspace::scale_fill_discrete_qualitative() 
+  colorspace::scale_fill_discrete_qualitative()
 ```
 
 #### Prepare the priors
@@ -731,8 +731,8 @@ plot(mvgam_prior, type = "smooths")
 knots = 4
 npops <- length(unique(data_train$series))
 
-hgam = mgcv::gam(y ~ s(time, bs = "tp", k = 5) + 
-                         s(series, bs = 're', k = npops), 
+hgam = mgcv::gam(y ~ s(time, bs = "tp", k = 5) +
+                         s(series, bs = 're', k = npops),
                        family = "poisson",
                        data = data_train)
 mgcv::gam.check(hgam)
@@ -743,17 +743,17 @@ plot(hgam)
 
 ```{r}
 #m1 <- mvgam(data = data_train,
-              # formula =  y ~ s(time, bs = "tp", k = 5) + 
+              # formula =  y ~ s(time, bs = "tp", k = 5) +
               #   s(series, bs = "re"),
               # use_lv = FALSE,
               # family = "poisson",
               # trend_model = 'GP',
               # use_stan = TRUE,
-              # chains = 2, 
+              # chains = 2,
               # burnin = 5000,
               # samples = 10000)
 
-#saveRDS(m1, paste0("variance/outputs/mvgam_variance.rds")) 
+#saveRDS(m1, paste0("variance/outputs/mvgam_variance.rds"))
 m1 <- readRDS(here::here("variance", "outputs", "mvgam_variance.rds"))
 ```
 
@@ -792,15 +792,15 @@ rownames(sp_corr$mean_correlations) <- gsub("_", " ", rownames(sp_corr$mean_corr
 Visualize and summarize species (latent variable) correlations from the model
 
 ```{r}
-corrplot::corrplot(sp_corr$mean_correlations, 
+corrplot::corrplot(sp_corr$mean_correlations,
                    type = "lower",
-                   method = "color", 
+                   method = "color",
                    tl.cex = 2.5, cl.cex = 3, tl.col = "black", font = 13)
 
 sp_corr$mean_correlations |> mean()
 sp_corr$mean_correlations |> sd()
 
-sp_corr$mean_correlations |> apply(2, mean) 
+sp_corr$mean_correlations |> apply(2, mean)
 sp_corr$mean_correlations |> apply(2, sd) |> lines()
 
 sp_corr$mean_correlations |> hist()
@@ -892,14 +892,14 @@ A State-Space hierarchical GAM is fitted using a Poisson family, AR(1) temporal 
 #   data = data_train,
 #   formula = y ~
 #     s(series, bs = "re"),
-# 
+#
 #   # Hierarchical smooths of time set up as a
 #   # State-Space model for sampling efficiency
 #   trend_formula = ~
 #     s(time, bs = "tp", k = 6) +
 #       s(time, trend, bs = "sz", k = 6),
 #   family = poisson(),
-# 
+#
 #   # AR1 for "residual" autocorrelation
 #   trend_model = AR(p = 1),
 #   noncentred = TRUE,
@@ -961,14 +961,14 @@ This model replaces penalized spline smooths with Gaussian Process terms to more
 #   data = data_train,
 #   formula = y ~
 #     s(series, bs = "re"),
-# 
+#
 #   # Hierarchical smooths of time set up as a
 #   # State-Space model for sampling efficiency
 #   trend_formula = ~
 #     gp(time, k = 6) +
 #       s(time, trend, bs = "sz", k = 6),
 #   family = poisson(),
-# 
+#
 #   # AR1 for "residual" autocorrelation
 #   trend_model = AR(p = 1),
 #   noncentred = TRUE,
@@ -1040,7 +1040,7 @@ ggplot(predictions, aes(x = time, y = estimate)) +
 
 ```{r}
 plot_predictions(
-  mod_nick_GP,
+  mod_forecast_GP,
   by = c("time"),
   newdata = datagrid(
     time = 1:max(data_test$time),
@@ -1079,7 +1079,6 @@ data_train_noBAWW %>%
   filter(missing_obs > 0)
 unique(data_train_noBAWW$series)
 
-
 colSums(is.na(data_train_noBAWW))
 
 # mod_strat_BAWW <- mvgam(
@@ -1103,7 +1102,7 @@ colSums(is.na(data_train_noBAWW))
 # )
 
 # Read the model
-mod_strat_BAWW <- readRDS(here::here("prediction", "output", "mod_strat_BAWW_GP_all_years"))
+mod_strat_BAWW <- readRDS(here::here("prediction", "output", "mod_strat_BAWW_GP_all_years.rds"))
 ```
 
 ##### Construct weighted prediction data for post-stratification
@@ -1207,7 +1206,9 @@ print(plot_BAWW_poststrat)
 
 ##### Anchor and evaluate Post-stratified predictions for BAWW model
 
-To align the post-stratified forecasts with observed data, we anchor the predictions by calibrating the intercept using the first year of *Mniotilta varia* (Black-and-white Warbler) observations. The offset ensures that predicted abundances match the empirical baseline. We then assess model performance using MAE and RMSE, and compare prediction agreement with a standard GAM by examining correlation and directional trend consistency between the two models.
+The model can predict the shape of the response, but not the scale. Here, *Mniotilta varia* abundance is much lower than predicted. We have a few options to address this; we could choose species with closer ecology and more similar traits for the training model. Weights could be further informed. Alternatively, we can play out the hypothetical where data was collected in some years, but not most. Users of long-term citizen science data will relate to this particular quirk.
+
+To align the post-stratified forecasts with observed data, we anchor the predictions by calibrating the intercept using the first year of *Mniotilta varia* (Black-and-white Warbler) observations. The offset ensures that predicted abundances match the empirical baseline. We then assess model performance by comparing prediction agreement with a standard GAM by examining correlation and directional trend consistency between the two models.
 
 ```{r}
 # Anchored Post-stratified BAWW Model ----
@@ -1215,11 +1216,11 @@ To align the post-stratified forecasts with observed data, we anchor the predict
 
 # Get the first year BAWW observation for anchoring
 first_year_BAWW <- actual_BAWW_data %>%
-  filter(time == 0)
+  filter(time == 0) # indexed at 0
 
 # Find the post-stratified prediction for the same time point
 first_year_pred <- post_strat_BAWW %>%
-  filter(time == 1)
+  filter(time == 1) # indexed at 1
 
 # Calculate the offset needed to match observed abundance
 abundance_offset <- first_year_BAWW$y - first_year_pred$estimate
@@ -1236,17 +1237,12 @@ post_strat_BAWW_anchored <- post_strat_BAWW %>%
   )
 
 mvgam_pred_mean <- post_strat_BAWW_anchored$estimate
-mae_mvgam <- mean(abs(data_Mniotilta$y - mvgam_pred_mean))
-rmse_mvgam <- sqrt(mean((data_Mniotilta$y - mvgam_pred_mean)^2))
-
 
 # GAM for BAWW
 BAWW_gam <- gam(y ~ s(time), data = data_Mniotilta)
 
-
-# Calculate correlation between predictions
-cor_predictions <- cor(mvgam_pred_mean, gam_pred)
-cor_predictions
+# Generate predictions across the time range
+gam_pred <- predict(BAWW_gam, type = "response")
 
 # Direction of trend agreement
 gam_trend_direction <- sign(diff(gam_pred))
@@ -1271,7 +1267,7 @@ plot_BAWW_anchored <- ggplot() +
   geom_line(
     data = post_strat_BAWW_anchored,
     aes(x = time, y = estimate),
-    color = "darkgreen", size = 1.2, linetype = "dashed"
+    color = "darkgreen", linewidth = 1.2, linetype = "dashed"
   ) +
 
   # Actual BAWW data
