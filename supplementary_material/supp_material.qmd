@@ -695,48 +695,39 @@ ggplot(data = data_train) +
 
 #### Prepare the priors
 
-```{r}
-npops = length(unique(data_train$series))
-knots = 4
+```{r prepare-priors, eval=FALSE}
+npops <- length(unique(data_train$series))
+knots <- 4
 
-mvgam_prior <- mvgam(data = data_train,
-                     formula = y ~
-                       # global smoother for all pops over time
-                       s(time, bs = "tp", k = knots) +
-                       # random intercept per group
-                       s(series, bs = 're', k = npops),
-                     family = "poisson",
-                     trend_model = 'GP',
-                     chains = 3,
-                     use_stan = TRUE,
-                     prior_simulation = TRUE)
+mvgam_prior <- mvgam(
+  data = data_train,
+  formula = y ~
+    s(time, bs = "tp", k = knots) +
+    s(series, bs = "re", k = npops),
+  family = "poisson",
+  trend_model = "GP",
+  chains = 3,
+  use_stan = TRUE,
+  prior_simulation = TRUE
+)
 
-# record the priors
-test_priors <- get_mvgam_priors(y ~
-                                  # global smoother for all pops over time
-                                  s(time, bs = "tp", k = knots) +
-                                  # random intercept per group
-                                  s(series, bs = 're', k = npops),
-                                family = "poisson",
-                                data = data_train,
-                                trend_model = 'GP',
-                                use_stan = TRUE)
+test_priors <- get_mvgam_priors(
+  y ~ s(time, bs = "tp", k = knots) +
+    s(series, bs = "re", k = npops),
+  family = "poisson",
+  data = data_train,
+  trend_model = "GP",
+  use_stan = TRUE
+)
 
-# look at the priors
-plot(mvgam_prior, type = 'smooths')
- 
-par(mfrow = c(6,5))
-for(i in 1:ncol(Year_Geom_Means_all)){
-  plot(mvgam_prior, type = 'trend', series = i)
-}
-
-plot(mvgam_prior, type = 're')
+plot(mvgam_prior, type = "smooths")
 ```
 
 ##### Check the number of knots
 
 ```{r}
 knots = 4
+npops <- length(unique(data_train$series))
 
 hgam = mgcv::gam(y ~ s(time, bs = "tp", k = 5) + 
                          s(series, bs = 're', k = npops), 
@@ -780,15 +771,17 @@ dat$series |> unique() # List all unique series included in the dataset
 
 #### Species associations
 
-```{r}
+
+```{r corr-clean}
+library(here)
 #sp_corr = mvgam::lv_correlations(m1) # Extract latent variable (species) correlation matrix
-sp_corr <- readRDS(here::here("variance", "outputs", "sp_corr_variance.rds")) # the previous line does not want to run while rendering the quarto, and so I'm reading the saved sp_corr
+sp_corr <- readRDS(here::here("variance", "outputs", "sp_corr_variance.rds"))
 
-# clean up the species names 
-
-colnames(sp_corr$mean_correlations) = gsub("_", " ", colnames(sp_corr$mean_correlations)) |> 
+# name cleanup
+colnames(sp_corr$mean_correlations) <- gsub("_", " ", colnames(sp_corr$mean_correlations)) |>
   stringr::str_to_sentence()
-rownames(sp_corr$mean_correlations) = gsub("_", " ", rownames(sp_corr$mean_correlations)) |> 
+
+rownames(sp_corr$mean_correlations) <- gsub("_", " ", rownames(sp_corr$mean_correlations)) |>
   stringr::str_to_sentence()
 
 ```
@@ -916,7 +909,7 @@ A State-Space hierarchical GAM is fitted using a Poisson family, AR(1) temporal 
 # )
 
 # Read the model
-mod_forecast_ps <- readRDS(here::here("prediction", "output", "mod_forecast_ps.rds")
+mod_forecast_ps <- readRDS(here::here("prediction", "output", "mod_forecast_ps.rds"))
 ```
 
 ##### Model summary
