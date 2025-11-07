@@ -40,18 +40,33 @@ editor: visual
 
 # Overview
 
-This document contains the detailed code and supplementary materials for the article *“Levelling up: How to unlock ecological data with hierarchical generalized additive models.”*
+This document provides the detailed code and supplementary materials for the article *“Levelling up: How to unlock ecological data with hierarchical generalized additive models.”*
 
-In the article, coding examples are organized into three thematic boxes, each corresponding to a main section: **(1)** *Estimating a hierarchy of trends* (Trends), **(2)** *Unpacking meaningful variance and covariances from noisy biological data* (Variance), and **(3)** *Borrowing strength to boost predictions* (Prediction). Most of the code presented here builds upon the examples and model structures introduced in Pedersen et al. (2019).
+It is divided as so:
 
-# Data
+-   Supplementary Material 1: Description of the data used throughout the study and across all coding examples (Boxes).
 
-We use the North American Breeding Bird Survey dataset extracted from [BioTIME](https://biotime.st-andrews.ac.uk/selectStudy.php?study=195) (Pardieck et al., 2015), a long-term monitoring program of North American bird populations that began in 1966. Our analyses focus on a subset of the data collected near Waverly, New York (44.55, -74.4833) between 1978 and 2007, which includes 36 bird species. Table 1 presents the species used in the different coding examples (Boxes), which differ from a box to another because of the objectives/needs of the examples.
+-   Supplementary Material 2: Code for **Box 1 (*Trends*)**, corresponding to the section *Estimating a hierarchy of trends* in the article.
 
-**Table S1:** Bird species and their inclusion (indicated with tick marks) in examples presented in Boxes 1, 2, and 3. These 36 species represent a randomly-selected subset of the North American Breeding Bird Survey dataset as curated in BioTIME (Pardieck et al., 2015; Dornelas et al. 2018), corresponding to data from Waverly, New York (latitude 44.55, and longitude -74.4833) collected between 1978 and 2007. For Boxes 2 and 3, we sub-selected from the 36 species to showcase the top most common species.
+-   Supplementary Material 3: Code for **Boxes 2 (*Variance*) and 3 (*Prediction*)**, which correspond respectively to the sections *Unpacking meaningful variance and covariances from noisy biological data* and *Borrowing strength to boost predictions.*
+
+Most of the code presented here builds upon the examples and model structures introduced in Pedersen et al. (2019) and the various blog posts of Nicholas Clark (<https://ecogambler.netlify.app/blog/>).
+
+# Supplementary Material 1
+
+## Description of the data
+
+We use the North American Breeding Bird Survey dataset extracted from [BioTIME](https://biotime.st-andrews.ac.uk/selectStudy.php?study=195) (Pardieck et al., 2015), a long-term monitoring program of North American bird populations that began in 1966. Our analyses focus on two subsets of the original dataset:
+
+-   `data_195`: It is a cleaned subset of the original BioTIME data, containing only the 309 species with consistent observations between 1978 and 2007 (see Supplementary Material 2).
+-   `d_crop`: It is a spatially cropped subset of `data_195`, containing only observations from Waverly, New York (latitude 44.55, longitude −74.4833). To create this localized dataset, non-essential columns were removed, and records were filtered to retain only species with complete 30-year time series at this site. One species (*Vireo olivaceus*) was further excluded due to inconsistent data (see Supplementary Material 3).
+
+Table S1 presents the species used in the different coding examples (Boxes), which vary from one box to another according to the objectives and requirements of each example.
+
+**Table S1.** Bird species and their inclusion (indicated by tick marks) in the coding examples presented in Boxes 1, 2, and 3. Box 1 uses the broader dataset (*data_195*), which includes randomly selected species from the North American Breeding Bird Survey as curated in BioTIME (Pardieck et al., 2015; Dornelas et al., 2018). Boxes 2 and 3 use the spatially cropped dataset (*d_crop*), restricted to observations from Waverly, New York (latitude 44.55, longitude −74.4833) collected between 1978 and 2007, and feature a subset of the most common species.Altogether, 36 bird species are represented across the three boxes.
 
 |                              |                          |       | **Box** |       |
-|----------------|--------------|:------------:|:------------:|:------------:|
+|---------------|---------------|:-------------:|:-------------:|:-------------:|
 | Common name                  | Species name             | **1** |  **2**  | **3** |
 | Red-winged blackbird         | *Agelaius phoeniceus*    |   x   |    x    |   x   |
 | Northern cardinal            | *Cardinalis cardinalis*  |   x   |         |       |
@@ -90,9 +105,9 @@ We use the North American Breeding Bird Survey dataset extracted from [BioTIME](
 | Blue-headed vireo            | *Vireo solitarius*       |       |    x    |   x   |
 | Mourning dove                | *Zenaida macroura*       |   x   |         |       |
 
-# Coding examples
+# Supplementary Material 2 - Box 1
 
-## Setting up the work environment
+## Step 1: Setting up the work environment
 
 ### Packages and Libraries
 
@@ -115,19 +130,19 @@ tidyverse,       # For the full suite of tidy tools (read, wrangle, plot) in one
 cmdstanr)        # For fitting Stan models via CmdStan, backend for mvgam
 ```
 
-### Import and clean the data
+### Import the raw data
 
 We import the raw BBS data downloaded from BioTIME.
 
 ```{r}
-setwd(here::here())
-df = read.csv("data/raw/raw_data_195.csv")
+df <- read.csv(here::here("data", "clean", "data_195.csv"))
 ```
 
-We filter and clean the data according to our needs, then we save the dataset.
+### Make a subset of the data (`data_195`)
+
+This dataset is the subset used in the coding example presented in Box 1. It also serves as the source for the additional subset used in Boxes 2 and 3 (see Supplementary Material 3).
 
 ```{r}
-
 # Filter to years in common across many species
 df_years = df |>
   group_by(valid_name) |>
@@ -141,48 +156,16 @@ df_years$max_year |> table()
 sp_to_keep = df_years |> filter(min_year == 1978, max_year == 2007)
 
 # Cut to species that have data between 1978 and 2007
-df = df |> filter(valid_name %in% sp_to_keep$valid_name)
-
-# Save this dataset
-# write.csv(df, "data/clean/data_195.csv", row.names = FALSE)
+data_195 = df |> filter(valid_name %in% sp_to_keep$valid_name)
 ```
 
-We crop the dataset to keep data from the region of Waverly, New York.
+## Step 2: Structure the data for analysis
 
-```{r}
-df = df |>
-  select(-c(SAMPLE_DESC, DAY, MONTH, BIOMAS))
-
-sites = paste0(df$LONGITUDE,"_", df$LATITUDE)
-table(sites)
-
-# crop to a site
-d_crop = df[sites %in% "-74.4833_44.55",] # We keep sites in Waverly, New York
-```
-
-## Box 1 - Trends
-
-HGAMs offer an indicator-based approach using nonparametric spatiotemporal regression models to identify periods of change in community abundance or composition (i.e., regime shifts). This method estimates three key indicators: 1) the mean rate of change across all species, 2) the mean per-capita rate of change, and 3) the standard deviation of per-capita rates of change (Pedersen et al., 2020).
-
-1.  **The mean rate of change across all species**
-
-    This indicator represents the average temporal rate of change in abundance across all species in the community. It provides a general measure of whether the community as a whole is increasing or decreasing in total abundance over time.
-
-2.  **The mean per-capita rate of change**
-
-    This indicator expresses the average rate of change per individual, capturing the community’s relative growth or decline independently of overall abundance. It is analogous to the population growth rate at the individual level and reflects how efficiently individuals contribute to population change through time.
-
-3.  **The standard deviation of per-capita rates of change**
-
-    This indicator quantifies the variability in per-capita rates of change among species. High values suggest that species respond differently to environmental or ecological drivers, indicating potential desynchronization or restructuring within the community, which can signal the onset of regime shifts.
-
-### Step 1: Process the data
-
-We process the data by selecting the 30 most abundant species for the analyses.
+We process the data by selecting the 30 most abundant species for the analyses. For this Box, we use the
 
 ```{r}
 # Aggregating biomass data to get a yearly abundance for each species.
-community_ts <- d_crop %>%
+community_ts <- data_195 %>%
   filter(!is.na(YEAR) & !is.na(valid_name) & valid_name != "") %>%
   group_by(YEAR, valid_name) %>%
   summarise(ABUNDANCE = n(), .groups = 'drop') %>%
@@ -203,7 +186,7 @@ community_ts_subset <- community_ts %>% # Create a new table with only the top 3
 head(community_ts_subset) # The subset of data that we will use from this point on in this section (Box 1)
 ```
 
-### Step 2: Fit Model GS (poisson)
+## Step 3: Fit Model GS
 
 Here, we fit the “GS” model described in Pedersen et al. (2019). Since the response variable represents abundance (count) data, we use the Poisson family.
 
@@ -230,7 +213,7 @@ gam_model_GS <- gam(
 )
 ```
 
-### Step 3: Derivatives and Indicators
+## Step 4: Derivatives and Indicators
 
 In this section, we generate predictions and calculate community-level indicators from the fitted **GS model**. We first create a prediction dataset covering all species and years, and use a small value (*ε*) to approximate derivatives numerically. We then draw 250 posterior simulations from the model coefficients to account for parameter uncertainty. Using these simulations, we compute predicted abundances and their first derivatives, which are used to estimate per capita rates of change. Finally, we summarize these results to obtain three community indicators for each year: the mean rate of change, the mean per capita rate of change, and the standard deviation of per capita rates of change, along with their median and 95% confidence intervals.
 
@@ -300,13 +283,27 @@ final_indicators_GS <- community_indicators_GS %>%
 
 ```
 
-#### Indicators from model GS
+### Indicators from model GS
+
+HGAMs offer an indicator-based approach using nonparametric spatiotemporal regression models to identify periods of change in community abundance or composition (i.e., regime shifts). This method estimates three key indicators: 1) the mean rate of change across all species, 2) the mean per-capita rate of change, and 3) the standard deviation of per-capita rates of change (Pedersen et al., 2020).
+
+1.  **The mean rate of change across all species**
+
+    This indicator represents the average temporal rate of change in abundance across all species in the community. It provides a general measure of whether the community as a whole is increasing or decreasing in total abundance over time.
+
+2.  **The mean per-capita rate of change**
+
+    This indicator expresses the average rate of change per individual, capturing the community’s relative growth or decline independently of overall abundance. It is analogous to the population growth rate at the individual level and reflects how efficiently individuals contribute to population change through time.
+
+3.  **The standard deviation of per-capita rates of change**
+
+    This indicator quantifies the variability in per-capita rates of change among species. High values suggest that species respond differently to environmental or ecological drivers, indicating potential desynchronization or restructuring within the community, which can signal the onset of regime shifts.
 
 ```{r}
 (head(final_indicators_GS))
 ```
 
-### Step 4: Plot the indicators
+## Step 5: Plot the indicators
 
 Here, we plot the three derivative-based indicators (mean rate of change, mean per capita rate, and the standard deviation of per capita rates) across years.
 
@@ -362,22 +359,21 @@ print(plot2_mean_percap_rof)
 print(plot3_SD_percap_rof)
 ```
 
-### Step 5: Making a figure with the plots of indicators
+### Making a figure with the plots of indicators
 
 Here, we create the figure that displays the three derivative-based indicators. This figure corresponds to **Box 1** in the paper (i.e., **Figure 3**).
 
 ```{r}
 library(patchwork)
 plot1_mean_rof + plot2_mean_percap_rof + plot3_SD_percap_rof + plot_annotation(tag_levels = "a")
-ggsave(paste0(here::here(), "/trends/figures/trends_indicators_plots.png"),
-       width = 10.3, height = 3.24)
+
 ```
 
-### Additional material from the "Trends" section
+## Additional material from the "Trends" section
 
-Here, we present additional code developed for the *Trends* section of the paper, which was not used directly in the final version of the manuscript.
+Here, we present additional code developed for the *Trends* section of the paper that was not included in the final version of the manuscript. This material complements the analyses presented in Box 1.
 
-#### Plotting the species-specific trends from the GS Model
+### Plotting the species-specific trends from the GS Model
 
 Here, we plot the species-specific trends estimated from the GS model.
 
@@ -408,13 +404,13 @@ species_trends_plot_GS <- ggplot(plot_data_GS, aes(x = year)) +
 print(species_trends_plot_GS)
 ```
 
-#### Fitting Model "S" and comparing with Model "GS"
+### Fitting Model "S" and comparing with Model "GS"
 
 Before selecting the **GS model** as the main example in the Box 1 of the article, we also fitted the **S model** (Pedersen et al., 2019) and compared the performance of the two models.\
 
 The code used for this comparison is provided below.
 
-##### Step 1: Fit Model "S" (poisson)
+#### Step 1: Fit Model "S"
 
 Here, we fit the model using the same data subset that was previously used for the GS model. Since the response variable represents abundance (count) data, we use the Poisson family.
 
@@ -430,7 +426,7 @@ gam_model_S <- gam(
 )
 ```
 
-##### Step 2: Derivatives and Indicators (model S)
+#### Step 2: Derivatives and Indicators (model S)
 
 In this section, we generate predictions and calculate community-level indicators from the fitted **S model**. We first create a prediction dataset covering all species and years, and use a small value (*ε*) to approximate derivatives numerically. We then draw 250 posterior simulations from the model coefficients to account for parameter uncertainty. Using these simulations, we compute predicted abundances and their first derivatives, which are used to estimate per capita rates of change. Finally, we summarize these results to obtain three community indicators for each year: the mean rate of change, the mean per capita rate of change, and the standard deviation of per capita rates of change, along with their median and 95% confidence intervals.
 
@@ -500,13 +496,13 @@ final_indicators_S <- community_indicators_S %>%
 
 ```
 
-###### Indicators from model S
+##### Indicators from model S
 
 ```{r}
 print(head(final_indicators_S))
 ```
 
-##### Step 3: Plot and compare indicators from both models
+#### Step 3: Plot and compare indicators from both models
 
 Here, we compare each of the three derivative-based indicators obtained from the GS and S models.
 
@@ -556,7 +552,7 @@ print(plot2_compare)
 print(plot3_compare)
 ```
 
-##### Step 4: Comparing the models (AIC)
+#### Step 4: Comparing the models (AIC)
 
 Here, we compare the GS and S models using the Akaike Information Criterion (AIC).
 
@@ -571,7 +567,7 @@ print(paste("AIC for Poisson GS Model:", round(aic_GS, 2)))
   # Best AIC score: Model GS
 ```
 
-##### Step 5 (additional step): Plotting the species-specific trends from model S
+#### Step 5 (additional step): Plotting the species-specific trends from model S
 
 Here, we plot the species-specific trends estimated from the S model.
 
@@ -602,13 +598,26 @@ species_trends_plot_S <- ggplot(plot_data_S, aes(x = year)) +
 print(species_trends_plot_S)
 ```
 
-## Box 2 - Variance
+# Supplementary Material 3 - Boxes 2 & 3
 
-### Step 1: Process the data
+In this section, we present the coding examples from Boxes 2 (*Variance*) and 3 (*Prediction*), both of which use the same data subset (`d_crop`) from Waverly, New York.
 
-We process the data for the coding example of Box 2, using the pre-processed dataset "d_crop".
+## Step 1: Setting up the work environment
+
+### Make a subset of the data (`d_crop`)
+
+The dataset is cropped to include only observations from the Waverly, New York region, and the Red-eyed vireo (*Vireo olivaceus)* is removed due to inconsistent data.
 
 ```{r}
+df = df |>
+  select(-c(SAMPLE_DESC, DAY, MONTH, BIOMAS))
+
+sites = paste0(df$LONGITUDE,"_", df$LATITUDE)
+table(sites)
+
+# crop to a site
+d_crop = df[sites %in% "-74.4833_44.55",] # We keep sites in Waverly, New York
+
 ## crop to birds 
 species = table(d_crop$valid_name)
 species = species[which(species == 30)]
@@ -618,7 +627,7 @@ d_crop = dplyr::filter(d_crop, valid_name %in% ex)
 d_crop = dplyr::filter(d_crop, valid_name != "Vireo olivaceus")
 ```
 
-### Step 2: Data exploration
+## Step 2: Data exploration
 
 ```{r}
 # summarise data contents
@@ -639,7 +648,9 @@ ggplot(data = coefs) +
   geom_point(aes(y = species, x = YEAR))
 ```
 
-### Step 3: Build a model for each species
+## Step 3: Box 2 - *Variance*
+
+### Build a model for each species
 
 ```{r}
 # check for basic population trends
@@ -654,7 +665,7 @@ ex = ex[c(1,4,12,13,16,18,21,23,26,28)]
 d_crop = dplyr::filter(d_crop, valid_name %in% ex)
 ```
 
-### Step 4: Build an mvgam model for all species together
+### Build an mvgam model for all species together
 
 #### Prepare the data
 
@@ -750,10 +761,10 @@ plot(hgam)
               # samples = 10000)
 
 #saveRDS(m1, paste0("variance/outputs/mvgam_variance.rds")) 
-m1 = readRDS("variance/outputs/mvgam_variance.rds")
+m1 <- readRDS(here::here("variance", "outputs", "mvgam_variance.rds"))
 ```
 
-### Step 5: Plots and model outputs
+### Plots and model outputs
 
 #### Visualize model diagnostics and smooths
 
@@ -770,7 +781,8 @@ dat$series |> unique() # List all unique series included in the dataset
 #### Species associations
 
 ```{r}
-sp_corr = mvgam::lv_correlations(m1) # Extract latent variable (species) correlation matrix
+#sp_corr = mvgam::lv_correlations(m1) # Extract latent variable (species) correlation matrix
+sp_corr <- readRDS(here::here("variance", "outputs", "sp_corr_variance.rds")) # the previous line does not want to run while rendering the quarto, and so I'm reading the saved sp_corr
 
 # clean up the species names 
 
@@ -800,15 +812,15 @@ sp_corr$mean_correlations |> apply(2, sd) |> lines()
 sp_corr$mean_correlations |> hist()
 ```
 
-## Box 3 - Prediction
+## Step 4: Box 3 - *Prediction*
 
-### Step 1: Process the data
+### Process the data
 
 Here we use `d_crop`, previously processed in Box 2, and further prepare it for this section.
 
 ```{r}
 # Add a rare/undersampled species for Example 1
-d_crop_rare <- readRDS("prediction/example_rare_species.rds")
+d_crop_rare <- readRDS(here::here("prediction", "example_rare_species.rds"))
 
 d_crop_merged <- rbind(d_crop, d_crop_rare)
 
@@ -851,13 +863,11 @@ data_noMniotilta <- filter(dat, series != "Mniotilta varia" & series != "Setopha
 data_Mniotilta <- filter(dat, series == "Mniotilta varia")
 ```
 
-### Step 2: Fit Models
+### Fit Models
 
 #### Inspect and visualize training and testing data
 
 Finalize and visualize data subsets: unused factor levels are removed, the temporal extent of the test set is verified, and all series are plotted to assess coverage between training and testing periods.
-
-<https://github.com/eco4cast/Statistical-Methods-Seminar-Series/blob/main/clark-dynamic_gams/portal_example.R>
 
 ```{r}
 set.seed(2505)
@@ -906,7 +916,7 @@ A State-Space hierarchical GAM is fitted using a Poisson family, AR(1) temporal 
 # )
 
 # Read the model
-mod_forecast_ps <- readRDS("prediction/output/mod_forecast_ps.rds")
+mod_forecast_ps <- readRDS(here::here("prediction", "output", "mod_forecast_ps.rds")
 ```
 
 ##### Model summary
@@ -932,7 +942,7 @@ forecast_penalized_splines <- plot_predictions(
 )
 ```
 
-Obviously the splines show high extrapolation uncertainty into the test time points, but that is ok as it isn't the focus of this exercise. But if we wanted better forecasts, let's use GPs in place of the penalized smooths. <https://ecogambler.netlify.app/blog/autocorrelated-gams/>
+Obviously the splines show high extrapolation uncertainty into the test time points, but that is ok as it isn't the focus of this exercise. But if we wanted better forecasts, let's use GPs in place of the penalized smooths. [Source](https://ecogambler.netlify.app/blog/autocorrelated-gams/) used.
 
 ##### Look at some of the AR1 estimates
 
@@ -969,7 +979,7 @@ This model replaces penalized spline smooths with Gaussian Process terms to more
 # )
 
 # Read the model
-mod_forecast_GP <- readRDS("prediction/output/mod_forecast_GP.rds")
+mod_forecast_GP <- readRDS(here::here("prediction", "output", "mod_forecast_GP.rds"))
 ```
 
 ##### Model summary
@@ -1043,11 +1053,11 @@ plot_predictions(
   theme(axis.title = element_text(size = 14))
 ```
 
-### Step 3: Gaussian process - predicting new species
+### Gaussian process - predicting new species
 
 #### Black-and-white Warbler (BAWW) Post-stratification model
 
-##### Training dataset & train the model 
+##### Training dataset & train the model
 
 In this section, we prepare a training dataset that excludes *Mniotilta varia* (Black-and-white Warbler) to perform post-stratification. We examine missing observations across species and time, verify data completeness, and then load the fitted state-space HGAM (Gaussian Process–based) trained on the reduced dataset.
 
@@ -1093,13 +1103,13 @@ colSums(is.na(data_train_noBAWW))
 # )
 
 # Read the model
-mod_strat_BAWW <- readRDS("prediction/output/mod_strat_BAWW_GP_all_years.rds")
+mod_strat_BAWW <- readRDS(here::here("prediction", "output", "mod_strat_BAWW_GP_all_years.rds"))
 ```
 
 ##### Construct weighted prediction data for post-stratification
 
 ```{r}
-# Post-stratification for Black-and-white Warbler prediction ----
+# Post-stratification for Black-and-white Warbler prediction ---
 # predict trends for all species and weight these based
 # on their "distance" to the new species
 unique_species_noBAWW <- levels(data_train_noBAWW$series)
@@ -1148,7 +1158,7 @@ pred_dat_BAWW <- do.call(
   )
 ```
 
-##### Get post-stratified predictions 
+##### Get post-stratified predictions
 
 ```{r}
 # Generate post-stratified predictions for Black-and-white Warbler
@@ -1283,6 +1293,8 @@ plot_BAWW_anchored <- ggplot() +
 ```
 
 # References
+
+Clark, N. (2023). Temporal autocorrelation in GAMs and the mvgam package. <https://ecogambler.netlify.app/blog/autocorrelated-gams/>
 
 Pardieck, K. L., Ziolkowski Jr., D. J., and Hudson, M. A. R. (2015). North American Breeding Bird Survey Dataset 1966 - 2014, version 2014.0. https://biotime.st-andrews.ac.uk/selectStudy.php?study=195
 

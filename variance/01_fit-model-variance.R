@@ -181,6 +181,9 @@ dat$series |> unique()
 # species associations ----
 
 sp_corr = mvgam::lv_correlations(m1)
+#saveRDS(sp_corr, here::here("variance", "outputs", "sp_corr_variance.rds"))
+  # CL: I've saved the sp_corr object in the outputs, because it was not rendering in the quarto (supplementary material). 
+      # It's easier to call back a saved object in the quarto.
 
 # clean up the species names 
 
