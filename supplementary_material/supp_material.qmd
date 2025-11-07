@@ -615,7 +615,7 @@ df = df |>
   select(-c(SAMPLE_DESC, DAY, MONTH, BIOMAS))
 
 sites = paste0(df$LONGITUDE,"_", df$LATITUDE)
-table(sites)
+head(table(sites))
 
 # crop to a site
 d_crop = df[sites %in% "-74.4833_44.55",] # We keep sites in Waverly, New York
@@ -653,11 +653,23 @@ ggplot(data = coefs) +
 ## Step 3: Box 2 - *Variance*
 
 ### Build a model for each species
-
+Show jsut the first 10 species
 ```{r}
+#| label: gam-grid-modern
+#| fig-width: 8
+#| fig-height: 18
+
+library(gratia)
+library(patchwork)
+
 # check for basic population trends
-gamls = lapply(dls, function(x){gam(ABUNDANCE ~ s(YEAR, k = 4), data = x)})
-lapply(gamls, plot)
+gamls <- lapply(dls, function(x){gam(ABUNDANCE ~ s(YEAR, k = 4), data = x)})
+
+# list of ggplots from only the first 10 models
+plt_list <- lapply(gamls[1:10], draw)
+
+wrap_plots(plt_list, ncol = 2)
+
 for(i in 1:length(gamls)){
   plot(gamls[[i]], main = dls[[i]]$valid_name[1])
 }
@@ -984,7 +996,7 @@ mod_forecast_GP <- readRDS(here::here("prediction", "output", "mod_forecast_GP.r
 
 ##### Model summary
 
-```{r, eval=FALSE}
+```{r}
 summary(mod_forecast_GP, include_betas = FALSE)
 ```
 
@@ -1286,6 +1298,8 @@ plot_BAWW_anchored <- ggplot() +
     axis.title = element_text(size = 12),
     legend.position = "none"
   )
+
+plot_BAWW_anchored
 ```
 
 # References

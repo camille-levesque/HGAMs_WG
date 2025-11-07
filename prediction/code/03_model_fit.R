@@ -15,8 +15,6 @@
 #   - Test ZMVN vs AR1 trend models systematically
 #   - Add model comparison metrics (WAIC, LOO-CV)
 #
-# FIXME:
-#   - mod1 vs mod naming inconsistency
 #
 #---
 
@@ -170,7 +168,7 @@ ggsave("prediction/figures/forecast_all_species_GP_dotted.png",
 )
 
 plot_predictions(
-  mod_nick_GP,
+  mod_forecast_GP,
   by = c("time"),
   newdata = datagrid(
     time = 1:max(data_test$time),
@@ -351,17 +349,9 @@ post_strat_BAWW_anchored <- post_strat_BAWW %>%
   )
 
 mvgam_pred_mean <- post_strat_BAWW_anchored$estimate
-mae_mvgam <- mean(abs(data_Mniotilta$y - mvgam_pred_mean))
-rmse_mvgam <- sqrt(mean((data_Mniotilta$y - mvgam_pred_mean)^2))
-
 
 # GAM for BAWW
 BAWW_gam <- gam(y ~ s(time), data = data_Mniotilta)
-
-
-# Calculate correlation between predictions
-cor_predictions <- cor(mvgam_pred_mean, gam_pred)
-cor_predictions
 
 # Direction of trend agreement
 gam_trend_direction <- sign(diff(gam_pred))
