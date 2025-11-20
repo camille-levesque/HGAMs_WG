@@ -396,8 +396,43 @@ ggsave("prediction/figures/G_BAWW_Anchored_GP_all_years.jpeg",
   plot = plot_BAWW_anchored, width = 6, height = 4
 )
 
-
-
+# with a different shape for t=0
+plot_BAWW_anchored2=ggplot() +
+  # Anchored post-stratified prediction
+  geom_ribbon(
+    data = post_strat_BAWW_anchored,
+    aes(x = time, ymin = conf.low, ymax = conf.high),
+    fill = "darkgreen", alpha = 0.4
+  ) +
+  geom_line(
+    data = post_strat_BAWW_anchored,
+    aes(x = time, y = estimate),
+    color = "darkgreen", size = 1.2, linetype = "dashed"
+  ) +
+  
+  # Actual BAWW data
+  geom_point(
+    data = actual_BAWW_data[actual_BAWW_data$time!=0,],
+    aes(x = time, y = y),
+    colour = "black", alpha = 0.2, size = 2.5
+  ) + geom_point(
+    data = actual_BAWW_data[actual_BAWW_data$time==0,],
+    aes(x = time, y = y),
+    colour = "black", alpha = 0.2, size = 3, shape=15
+  )+
+  theme_classic() +
+  labs(
+    y =
+      expression(paste("Predicted ", italic("Mniotilta varia"), " abundance")),
+    x = "Time"
+  ) +
+  theme(
+    axis.title = element_text(size = 12),
+    legend.position = "none"
+  )
+ggsave("prediction/figures/G_BAWW_Anchored_GP_all_yearsT0.jpeg",
+       plot = plot_BAWW_anchored2, width = 6, height = 4
+)
 # # Model Diagnostics ----
 # # Inspect the model summary
 # summary(mod)
