@@ -34,8 +34,6 @@ data_train <- data_train %>%
 data_test <- data_test %>%
   droplevels()
 
-range(data_test$time)
-
 # Plot series
 plot_mvgam_series(
   data = data_train,
@@ -135,9 +133,14 @@ predictions <- predictions(
   type = "expected"
 )
 
+
+predictions$year <- predictions$time + 1977
+data_train$year <- data_train$time + 1977
+data_test$year <- data_test$time + 1977
+
 predictions$forecast <- ifelse(predictions$time > 22, "Forecast", "Fitted")
 
-ggplot(predictions, aes(x = time, y = estimate)) +
+ggplot(predictions, aes(x = year, y = estimate)) +
   geom_ribbon(
     aes(ymin = conf.low, ymax = conf.high, fill = series),
     alpha = 0.2
@@ -150,17 +153,26 @@ ggplot(predictions, aes(x = time, y = estimate)) +
     data = subset(predictions, forecast == "Forecast"),
     aes(color = series), linewidth = 1, linetype = "dashed"
   ) +
-  geom_vline(xintercept = 22, linetype = "dotted") +
-  geom_point(data = data_train, aes(x = time, y = y), alpha = 0.2) +
-  geom_point(data = data_test, aes(x = time, y = y), alpha = 0.2) +
+  geom_vline(xintercept = 1999, linetype = "dotted") +
+  geom_point(data = data_train, aes(x = year, y = y), color = "black", alpha = 1) +
+  geom_point(data = data_test, aes(x = year, y = y), alpha = 0.2) +
   facet_wrap(~series, scales = "free_y") +
+  theme_bw() +
   theme(
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black"),
     legend.position = "none",
-    strip.text = element_text(size = 14, face = "italic")
+    strip.text = element_text(size = 14, face = "italic"),
+    axis.title = element_text(size = 14)
   ) +
-  labs(y = "Abundance", x = "Time") +
-  theme(axis.title = element_text(size = 14))
-ggsave("prediction/figures/forecast_all_species_GP_dotted.png",
+  labs(y = "Abundance", x = "Year")
+
+
+
+ggsave("prediction/figures/forecast_all_species_GP_year.png",
   plot = last_plot(),
   width = 10,
   height = 6,
@@ -371,7 +383,7 @@ plot_BAWW_anchored <- ggplot() +
   geom_line(
     data = post_strat_BAWW_anchored,
     aes(x = time, y = estimate),
-    color = "darkgreen", size = 1.2, linetype = "dashed"
+    color = "darkgreen", linewidth = 1.2, linetype = "dashed"
   ) +
 
   # Actual BAWW data
@@ -396,42 +408,50 @@ ggsave("prediction/figures/G_BAWW_Anchored_GP_all_years.jpeg",
   plot = plot_BAWW_anchored, width = 6, height = 4
 )
 
+# Convert time to actual years
+post_strat_BAWW_anchored$year <- post_strat_BAWW_anchored$time + 1977
+actual_BAWW_data$year <- actual_BAWW_data$time + 1977
+
 # with a different shape for t=0
-plot_BAWW_anchored2=ggplot() +
+plot_BAWW_anchored2 <- ggplot() +
   # Anchored post-stratified prediction
   geom_ribbon(
     data = post_strat_BAWW_anchored,
-    aes(x = time, ymin = conf.low, ymax = conf.high),
+    aes(x = year, ymin = conf.low, ymax = conf.high),
     fill = "darkgreen", alpha = 0.4
   ) +
   geom_line(
     data = post_strat_BAWW_anchored,
-    aes(x = time, y = estimate),
-    color = "darkgreen", size = 1.2, linetype = "dashed"
+    aes(x = year, y = estimate),
+    color = "darkgreen", linewidth = 1.2, linetype = "dashed"
   ) +
-  
+
   # Actual BAWW data
   geom_point(
-    data = actual_BAWW_data[actual_BAWW_data$time!=0,],
-    aes(x = time, y = y),
+    data = actual_BAWW_data[actual_BAWW_data$time != 0, ],
+    aes(x = year, y = y),
     colour = "black", alpha = 0.2, size = 2.5
-  ) + geom_point(
-    data = actual_BAWW_data[actual_BAWW_data$time==0,],
-    aes(x = time, y = y),
-    colour = "black", alpha = 0.2, size = 3, shape=15
-  )+
+  ) +
+  geom_point(
+    data = actual_BAWW_data[actual_BAWW_data$time == 0, ],
+    aes(x = year, y = y),
+    colour = "black", alpha = 0.2, size = 3, shape = 15
+  ) +
   theme_classic() +
   labs(
     y =
       expression(paste("Predicted ", italic("Mniotilta varia"), " abundance")),
-    x = "Time"
+    x = "Year"
   ) +
   theme(
     axis.title = element_text(size = 12),
     legend.position = "none"
   )
+
+plot_BAWW_anchored2
+
 ggsave("prediction/figures/G_BAWW_Anchored_GP_all_yearsT0.jpeg",
-       plot = plot_BAWW_anchored2, width = 6, height = 4
+  plot = plot_BAWW_anchored2, width = 5, height = 4
 )
 # # Model Diagnostics ----
 # # Inspect the model summary
