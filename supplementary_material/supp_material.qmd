@@ -653,7 +653,9 @@ ggplot(data = coefs) +
 ## Step 3: Box 2 - *Variance*
 
 ### Build a model for each species
+
 Show jsut the first 10 species
+
 ```{r}
 #| label: gam-grid-modern
 #| fig-width: 8
@@ -1023,7 +1025,12 @@ predictions$forecast <- ifelse(predictions$time > 22, "Forecast", "Fitted")
 ##### Plot species-level forecasts
 
 ```{r}
-ggplot(predictions, aes(x = time, y = estimate)) +
+# Convert time to years
+predictions$year <- predictions$time + 1977
+data_train$year <- data_train$time + 1977
+data_test$year <- data_test$time + 1977
+
+ggplot(predictions, aes(x = year, y = estimate)) +
   geom_ribbon(
     aes(ymin = conf.low, ymax = conf.high, fill = series),
     alpha = 0.2
@@ -1036,16 +1043,22 @@ ggplot(predictions, aes(x = time, y = estimate)) +
     data = subset(predictions, forecast == "Forecast"),
     aes(color = series), linewidth = 1, linetype = "dashed"
   ) +
-  geom_vline(xintercept = 22, linetype = "dotted") +
-  geom_point(data = data_train, aes(x = time, y = y), alpha = 0.2) +
-  geom_point(data = data_test, aes(x = time, y = y), alpha = 0.2) +
+  geom_vline(xintercept = 1999, linetype = "dotted") +
+  geom_point(data = data_train, aes(x = year, y = y), color = "black", alpha = 1) +
+  geom_point(data = data_test, aes(x = year, y = y), alpha = 0.2) +
   facet_wrap(~series, scales = "free_y") +
+  theme_bw() +
   theme(
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black"),
     legend.position = "none",
-    strip.text = element_text(size = 14, face = "italic")
+    strip.text = element_text(size = 14, face = "italic"),
+    axis.title = element_text(size = 14)
   ) +
-  labs(y = "Abundance", x = "Time") +
-  theme(axis.title = element_text(size = 14))
+  labs(y = "Abundance", x = "Year")
 ```
 
 ##### Plot latent/global trend
@@ -1064,6 +1077,101 @@ plot_predictions(
   labs(y = "Global latent trend", x = "Time") +
   theme(axis.title = element_text(size = 14))
 ```
+
+#### Individual GAMs: comparing forecasts with no latent trend
+
+Here, individual GAMs are fitted separately for each species without a shared latent trend. This approach is expected to show poorer forecasting performance compared to the hierarchical GP HGAM model above.
+
+```{r}
+set.seed(2505)
+
+data_train <- data_train %>%
+  droplevels()
+data_test <- data_test %>%
+  droplevels()
+
+# Get unique species
+species_list <- unique(data_train$series)
+
+# Initialize list to store models and predictions
+mod_list <- list()
+pred_list <- list()
+
+# Loop through each species and fit individual GAMs
+for (sp in species_list) {
+  # Subset data for this species
+  train_sp <- data_train %>% filter(series == sp)
+
+  # Fit individual GAM
+  mod_list[[sp]] <- gam(y ~ s(time, bs = "tp", k = 6),
+    data = train_sp,
+    family = poisson()
+  )
+
+  # Generate predictions for all time points
+  pred_data_sp <- data.frame(
+    time = 1:max(data_test$time)
+  )
+
+  pred_sp <- predict(mod_list[[sp]],
+    newdata = pred_data_sp,
+    se.fit = TRUE,
+    type = "response"
+  )
+
+  pred_list[[sp]] <- data.frame(
+    time = pred_data_sp$time,
+    series = sp,
+    estimate = pred_sp$fit,
+    se = pred_sp$se.fit,
+    conf.low = pred_sp$fit - 1.96 * pred_sp$se.fit,
+    conf.high = pred_sp$fit + 1.96 * pred_sp$se.fit
+  )
+}
+
+# Combine all predictions
+predictions <- bind_rows(pred_list)
+
+# Convert to years
+predictions$year <- predictions$time + 1977
+data_train$year <- data_train$time + 1977
+data_test$year <- data_test$time + 1977
+
+predictions$forecast <- ifelse(predictions$time > 22, "Forecast", "Fitted")
+
+# Plot
+ggplot(predictions, aes(x = year, y = estimate)) +
+  geom_ribbon(
+    aes(ymin = conf.low, ymax = conf.high, fill = series),
+    alpha = 0.2
+  ) +
+  geom_line(
+    data = subset(predictions, forecast == "Fitted"),
+    aes(color = series), linewidth = 1
+  ) +
+  geom_line(
+    data = subset(predictions, forecast == "Forecast"),
+    aes(color = series), linewidth = 1, linetype = "dashed"
+  ) +
+  geom_vline(xintercept = 1999, linetype = "dotted") +
+  geom_point(data = data_train, aes(x = year, y = y), color = "black", alpha = 1) +
+  geom_point(data = data_test, aes(x = year, y = y), alpha = 0.2) +
+  facet_wrap(~series, scales = "free_y") +
+  theme_bw() +
+  theme(
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black"),
+    legend.position = "none",
+    strip.text = element_text(size = 14, face = "italic"),
+    axis.title = element_text(size = 14)
+  ) +
+  labs(y = "Abundance", x = "Year")
+```
+
+Without a shared temporal trend, most models were severely overfit, which caused wide confidence intervals or ecologically unlikely mean slopes in the forecast range.
 
 ### Gaussian process - predicting new species
 
