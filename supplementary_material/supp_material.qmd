@@ -127,6 +127,7 @@ gridExtra,       # For arranging multiple ggplot2 plots into grids
 mvgam,           # For fitting multivariate/State-Space GAMs and plotting model components
 marginaleffects, # For obtaining marginal/average predictions from fitted models
 tidyverse,       # For the full suite of tidy tools (read, wrangle, plot) in one load
+patchwork,       # For combining multiple ggplot2 plots into one figure
 cmdstanr)        # For fitting Stan models via CmdStan, backend for mvgam
 ```
 
@@ -163,7 +164,7 @@ data_195 <- df
 
 ## Step 2: Structure the data for analysis
 
-We process the data by selecting the 30 most abundant species for the analyses. For this Box, we use the
+We process the data by selecting the 30 most abundant species for the analyses.
 
 ```{r}
 # Aggregating biomass data to get a yearly abundance for each species.
@@ -363,10 +364,9 @@ print(plot3_SD_percap_rof)
 
 ### Making a figure with the plots of indicators
 
-Here, we create the figure that displays the three derivative-based indicators. This figure corresponds to **Box 1** in the paper (i.e., **Figure 3**).
+Here, we create the figure that displays the three derivative-based indicators. This figure corresponds to **Box 1** in the paper (i.e., **Figure 2**).
 
 ```{r}
-library(patchwork)
 plot1_mean_rof + plot2_mean_percap_rof + plot3_SD_percap_rof + plot_annotation(tag_levels = "a")
 
 ```
@@ -564,10 +564,12 @@ aic_S <- AIC(gam_model_S)
 aic_GS <- AIC(gam_model_GS)
 
 # Print the results for comparison
-print(paste("AIC for Poisson S Model:", round(aic_S, 2)))
-print(paste("AIC for Poisson GS Model:", round(aic_GS, 2)))
-  # Best AIC score: Model GS
+cat(
+  "AIC for Poisson S Model:", round(aic_S, 2), "\n",
+  "AIC for Poisson GS Model:", round(aic_GS, 2), "\n")
 ```
+
+The best AIC score is that of the Model GS, because it is the smallest.
 
 #### Step 5 (additional step): Plotting the species-specific trends from model S
 
@@ -647,20 +649,23 @@ coefs = mls |> lapply(coef) |>
 
 # plot to see the slopes
 ggplot(data = coefs) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
   geom_point(aes(y = species, x = YEAR))
 ```
+
+The dashed vertical line at 0 serves as a visual reference separating negative slopes (declining trends) from positive slopes (increasing trends).
 
 ## Step 3: Box 2 - *Variance*
 
 ### Build a model for each species
-Show jsut the first 10 species
+
+We show just the first 10 species
+
 ```{r}
 #| label: gam-grid-modern
 #| fig-width: 8
 #| fig-height: 18
 
-library(gratia)
-library(patchwork)
 
 # check for basic population trends
 gamls <- lapply(dls, function(x){gam(ABUNDANCE ~ s(YEAR, k = 4), data = x)})
@@ -704,7 +709,9 @@ ggplot(data = data_train) +
                   col = series, fill = series),
               alpha = .1) +
   colorspace::scale_color_discrete_qualitative() +
-  colorspace::scale_fill_discrete_qualitative()
+  colorspace::scale_fill_discrete_qualitative() +
+  theme_bw() +
+  labs(x = "Year", y = "Abundance")
 ```
 
 #### Prepare the priors
@@ -804,16 +811,51 @@ rownames(sp_corr$mean_correlations) <- gsub("_", " ", rownames(sp_corr$mean_corr
 Visualize and summarize species (latent variable) correlations from the model
 
 ```{r}
-corrplot::corrplot(sp_corr$mean_correlations,
-                   type = "lower",
-                   method = "color",
-                   tl.cex = 2.5, cl.cex = 3, tl.col = "black", font = 13)
+#| fig-width: 12
+#| fig-height: 12
 
-sp_corr$mean_correlations |> mean()
-sp_corr$mean_correlations |> sd()
+corrplot::corrplot(
+  sp_corr$mean_correlations,
+  type = "lower",
+  method = "color",
+  tl.cex = 1.2,
+  cl.cex = 1.0,
+  tl.col = "black"
+)
 
-sp_corr$mean_correlations |> apply(2, mean)
-sp_corr$mean_correlations |> apply(2, sd) |> lines()
+```
+
+```{r}
+# Overall mean + SD 
+overall_mean <- mean(sp_corr$mean_correlations, na.rm = TRUE)
+overall_sd   <- sd(sp_corr$mean_correlations, na.rm = TRUE)
+
+cat("Overall mean correlation:", round(overall_mean, 3), "\n")
+cat("Overall SD correlation:  ", round(overall_sd, 3), "\n\n")
+
+
+# Mean + SD per species 
+summ_df <- data.frame(
+  species = colnames(sp_corr$mean_correlations),
+  mean = apply(sp_corr$mean_correlations, 2, mean, na.rm = TRUE),
+  sd   = apply(sp_corr$mean_correlations, 2, sd, na.rm = TRUE)
+) |>
+  dplyr::arrange(dplyr::desc(mean))
+
+knitr::kable(
+  summ_df,
+  digits = 3,
+  caption = "Mean and SD of correlations by species"
+)
+
+
+# Plot SD per species 
+ggplot(summ_df, aes(x = reorder(species, sd), y = sd)) +
+  geom_col() +
+  coord_flip() +
+  theme_bw() +
+  labs(x = NULL, y = "SD of correlation", title = "Variability of correlations by species")
+
 
 sp_corr$mean_correlations |> hist()
 ```
