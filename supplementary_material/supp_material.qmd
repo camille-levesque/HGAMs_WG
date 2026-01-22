@@ -66,7 +66,7 @@ Table S1 presents the species used in the different coding examples (Boxes), whi
 **Table S1.** Bird species and their inclusion (indicated by tick marks) in the coding examples presented in Boxes 1, 2, and 3. Box 1 uses the broader dataset (*data_195*), which includes randomly selected species from the North American Breeding Bird Survey as curated in BioTIME (Pardieck et al., 2015; Dornelas et al., 2018). Boxes 2 and 3 use the spatially cropped dataset (*d_crop*), restricted to observations from Waverly, New York (latitude 44.55, longitude −74.4833) collected between 1978 and 2007, and feature a subset of the most common species.Altogether, 36 bird species are represented across the three boxes.
 
 |                              |                          |       | **Box** |       |
-|------------------------------|--------------------------|:-----:|:-------:|:-----:|
+|--------------------|-----------------|:----------:|:----------:|:----------:|
 | Common name                  | Species name             | **1** |  **2**  | **3** |
 | Red-winged blackbird         | *Agelaius phoeniceus*    |   x   |    x    |   x   |
 | Northern cardinal            | *Cardinalis cardinalis*  |   x   |         |       |
@@ -1417,37 +1417,48 @@ This plot compares the anchored post-stratified predictions for *Mniotilta varia
 
 ```{r}
 # Visualization: Anchored vs Original Post-stratified Predictions ----
-plot_BAWW_anchored <- ggplot() +
+
+# Convert time to actual years
+post_strat_BAWW_anchored$year <- post_strat_BAWW_anchored$time + 1977
+actual_BAWW_data$year <- actual_BAWW_data$time + 1977
+
+# with a different shape for t=0
+plot_BAWW_anchored2 <- ggplot() +
   # Anchored post-stratified prediction
   geom_ribbon(
     data = post_strat_BAWW_anchored,
-    aes(x = time, ymin = conf.low, ymax = conf.high),
+    aes(x = year, ymin = conf.low, ymax = conf.high),
     fill = "darkgreen", alpha = 0.4
   ) +
   geom_line(
     data = post_strat_BAWW_anchored,
-    aes(x = time, y = estimate),
+    aes(x = year, y = estimate),
     color = "darkgreen", linewidth = 1.2, linetype = "dashed"
   ) +
 
   # Actual BAWW data
   geom_point(
-    data = actual_BAWW_data,
-    aes(x = time, y = y),
+    data = actual_BAWW_data[actual_BAWW_data$time != 0, ],
+    aes(x = year, y = y),
     colour = "black", alpha = 0.2, size = 2.5
+  ) +
+  geom_point(
+    data = actual_BAWW_data[actual_BAWW_data$time == 0, ],
+    aes(x = year, y = y),
+    colour = "black", alpha = 0.2, size = 3, shape = 15
   ) +
   theme_classic() +
   labs(
     y =
       expression(paste("Predicted ", italic("Mniotilta varia"), " abundance")),
-    x = "Time"
+    x = "Year"
   ) +
   theme(
     axis.title = element_text(size = 12),
     legend.position = "none"
   )
 
-plot_BAWW_anchored
+plot_BAWW_anchored2
 ```
 
 # References
