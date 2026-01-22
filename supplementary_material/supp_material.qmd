@@ -66,7 +66,7 @@ Table S1 presents the species used in the different coding examples (Boxes), whi
 **Table S1.** Bird species and their inclusion (indicated by tick marks) in the coding examples presented in Boxes 1, 2, and 3. Box 1 uses the broader dataset (*data_195*), which includes randomly selected species from the North American Breeding Bird Survey as curated in BioTIME (Pardieck et al., 2015; Dornelas et al., 2018). Boxes 2 and 3 use the spatially cropped dataset (*d_crop*), restricted to observations from Waverly, New York (latitude 44.55, longitude −74.4833) collected between 1978 and 2007, and feature a subset of the most common species.Altogether, 36 bird species are represented across the three boxes.
 
 |                              |                          |       | **Box** |       |
-|---------------|---------------|:-------------:|:-------------:|:-------------:|
+|------------------------------|--------------------------|:-----:|:-------:|:-----:|
 | Common name                  | Species name             | **1** |  **2**  | **3** |
 | Red-winged blackbird         | *Agelaius phoeniceus*    |   x   |    x    |   x   |
 | Northern cardinal            | *Cardinalis cardinalis*  |   x   |         |       |
@@ -658,6 +658,7 @@ The dashed vertical line at 0 serves as a visual reference separating negative s
 ## Step 3: Box 2 - *Variance*
 
 ### Build a model for each species
+
 We show just the first 10 species
 
 ```{r}
