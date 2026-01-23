@@ -1039,6 +1039,7 @@ mod_forecast_GP <- readRDS(here::here("prediction", "output", "mod_forecast_GP.r
 ##### Model summary
 
 ```{r}
+
 summary(mod_forecast_GP, include_betas = FALSE)
 ```
 
